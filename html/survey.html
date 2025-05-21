@@ -148,7 +148,7 @@
         };
 
         // First request - Submit survey
-        const response = await fetch('https://finease-2kj3.onrender.com/survey', {
+        const response = await fetch('https://finease-2kj3.onrender.com/api/survey', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -164,7 +164,7 @@
         }
 
         // Second request - Update completion status
-        const statusResponse = await fetch('https://finease-2kj3.onrender.com/user/survey-completed', {
+        const statusResponse = await fetch('https://finease-2kj3.onrender.com/api/user/survey-completed', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
