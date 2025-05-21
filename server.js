@@ -148,7 +148,7 @@ const auth = async (req, res, next) => {
 };
 
 const corsOptions = {
-    origin: ['http://127.0.0.1:5500', 'http://localhost:5500', 'https://finease.onrender.com'],
+    origin: ['http://127.0.0.1:5500', 'http://localhost:5500', 'https://finease-2kj3.onrender.com'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
