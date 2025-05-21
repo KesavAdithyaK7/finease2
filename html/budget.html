@@ -386,7 +386,7 @@ function updateAllocation(slider, id) {
 
     showLoading();
     try {
-        const response = await fetch('https://finease_backend.onrender.com/api/budget/save', {
+        const response = await fetch('https://finease.onrender.com/api/budget/save', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -414,7 +414,7 @@ async function loadBudget() {
 
     showLoading();
     try {
-        const response = await fetch('https://finease_backend.onrender.com/apibudget/load', {
+        const response = await fetch('https://finease.onrender.com/apibudget/load', {
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
