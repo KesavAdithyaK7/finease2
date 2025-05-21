@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinEase Features</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50">
+    <header class="fixed w-full top-0 bg-blue-600 z-50">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <a href="index.html" class="text-white text-2xl font-bold">FinEase</a>
+                <nav class="hidden md:flex items-center space-x-8">
+                    <ul class="flex space-x-6">
+                        <li><a href="index.html" class="text-white hover:text-blue-200">Home</a></li>
+                        <li><a href="features.html" class="text-white hover:text-blue-200 font-semibold">Features</a></li>
+                        <li><a href="about.html" class="text-white hover:text-blue-200">About</a></li>
+                    </ul>
+                    <div class="flex space-x-4">
+                        <a href="login.html" class="px-4 py-2 rounded-lg bg-blue-700 text-white hover:bg-blue-800">Login</a>
+                        <a href="signup.html" class="px-4 py-2 rounded-lg bg-white text-blue-600 hover:bg-blue-50">Sign Up</a>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto mt-24 p-4">
+        <!-- Investment Planning Section -->
+        <section class="mb-12 bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-2xl font-semibold mb-4">Smart Investment Planning</h3>
+            <div class="flex flex-wrap -mx-2">
+                <div class="w-full md:w-1/2 px-2 mb-4">
+                    <p class="text-gray-600 mb-4">
+                        Start your investment journey with our smart recommendations and tracking tools.
+                    </p>
+                    <ul class="list-disc list-inside text-gray-600">
+                        <li>Savings accounts and CDs</li>
+                        <li>Low-cost index funds</li>
+                        <li>Micro-investing platforms</li>
+                        <li>Educational resources on investing basics</li>
+                    </ul>
+                </div>
+                <div class="w-full md:w-1/2 px-2 mb-4">
+                    <canvas id="investmentChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Budget Planning Section -->
+        <section class="mb-12 bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-2xl font-semibold mb-4">Interactive Budget Planner</h3>
+            <p class="text-gray-600 mb-4">
+                Adjust the sliders to see how different budget allocations affect your monthly spending plan.
+            </p>
+            
+            <div class="flex flex-wrap -mx-2">
+                <div class="w-full md:w-1/2 px-2 mb-4">
+                    <div class="space-y-6">
+                        <div>
+                            <label class="flex justify-between mb-2">
+                                <span class="font-semibold text-gray-700">Books</span>
+                                <span class="text-blue-600" id="booksPercent">25%</span>
+                            </label>
+                            <input type="range" 
+                                   class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer"
+                                   min="0" max="100" value="25"
+                                   oninput="updateBudget(this, 'booksPercent')">
+                        </div>
+                        <div>
+                            <label class="flex justify-between mb-2">
+                                <span class="font-semibold text-gray-700">Food</span>
+                                <span class="text-blue-600" id="foodPercent">30%</span>
+                            </label>
+                            <input type="range" 
+                                   class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer"
+                                   min="0" max="100" value="30"
+                                   oninput="updateBudget(this, 'foodPercent')">
+                        </div>
+                        <div>
+                            <label class="flex justify-between mb-2">
+                                <span class="font-semibold text-gray-700">Transport</span>
+                                <span class="text-blue-600" id="transportPercent">15%</span>
+                            </label>
+                            <input type="range" 
+                                   class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer"
+                                   min="0" max="100" value="15"
+                                   oninput="updateBudget(this, 'transportPercent')">
+                        </div>
+                        <div>
+                            <label class="flex justify-between mb-2">
+                                <span class="font-semibold text-gray-700">Entertainment</span>
+                                <span class="text-blue-600" id="entertainmentPercent">10%</span>
+                            </label>
+                            <input type="range" 
+                                   class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer"
+                                   min="0" max="100" value="10"
+                                   oninput="updateBudget(this, 'entertainmentPercent')">
+                        </div>
+                        <div>
+                            <label class="flex justify-between mb-2">
+                                <span class="font-semibold text-gray-700">Savings</span>
+                                <span class="text-blue-600" id="savingsPercent">20%</span>
+                            </label>
+                            <input type="range" 
+                                   class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer"
+                                   min="0" max="100" value="20"
+                                   oninput="updateBudget(this, 'savingsPercent')">
+                        </div>
+                        <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                            <label class="block mb-2 font-semibold text-gray-700">Monthly Budget Amount (₹)</label>
+                            <input type="number" id="budgetAmount" value="10000"
+                                   class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                                   oninput="calculateBudget()">
+                        </div>
+                    </div>
+                </div>
+                <div class="w-full md:w-1/2 px-2 mb-4">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-lg font-semibold mb-4">Monthly Breakdown</h4>
+                        <canvas id="budgetPieChart" class="mb-4"></canvas>
+                        <div id="breakdownList" class="space-y-2 text-sm text-gray-600"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Investment Chart
+        const investmentCtx = document.getElementById("investmentChart").getContext("2d");
+        new Chart(investmentCtx, {
+            type: "line",
+            data: {
+                labels: ["Year 1", "Year 2", "Year 3", "Year 4", "Year 5"],
+                datasets: [{
+                    label: "Investment Growth",
+                    data: [1000, 1150, 1322, 1521, 1749],
+                    borderColor: "rgb(75, 192, 192)",
+                    tension: 0.1,
+                }],
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                    },
+                },
+            },
+        });
+
+        // Budget Chart and Calculations
+        let budgetChart;
+const MAX_TOTAL_PERCENTAGE = 100;
+
+function validateBudgetAllocation() {
+    const percentages = {
+        'Books': parseFloat(document.getElementById('booksPercent').textContent),
+        'Food': parseFloat(document.getElementById('foodPercent').textContent),
+        'Transport': parseFloat(document.getElementById('transportPercent').textContent),
+        'Entertainment': parseFloat(document.getElementById('entertainmentPercent').textContent),
+        'Savings': parseFloat(document.getElementById('savingsPercent').textContent)
+    };
+
+    const total = Object.values(percentages).reduce((sum, value) => sum + parseFloat(value), 0);
+    return {
+        isValid: total <= MAX_TOTAL_PERCENTAGE,
+        total: total
+    };
+}
+
+function updateBudget(slider, id) {
+    const currentValue = parseInt(slider.value);
+    const validation = validateBudgetAllocation();
+    
+    if (validation.total > MAX_TOTAL_PERCENTAGE) {
+        slider.value = Math.max(0, currentValue - (validation.total - MAX_TOTAL_PERCENTAGE));
+        document.getElementById(id).textContent = `${slider.value}%`;
+        document.getElementById(id).classList.add('text-red-600');
+    } else {
+        document.getElementById(id).textContent = `${currentValue}%`;
+        document.getElementById(id).classList.remove('text-red-600');
+    }
+    calculateBudget();
+}
+
+function calculateBudget() {
+    const amount = parseFloat(document.getElementById('budgetAmount').value) || 0;
+    const percentages = {
+        'Books': parseFloat(document.getElementById('booksPercent').textContent),
+        'Food': parseFloat(document.getElementById('foodPercent').textContent),
+        'Transport': parseFloat(document.getElementById('transportPercent').textContent),
+        'Entertainment': parseFloat(document.getElementById('entertainmentPercent').textContent),
+        'Savings': parseFloat(document.getElementById('savingsPercent').textContent)
+    };
+
+    const validation = validateBudgetAllocation();
+    if (!validation.isValid) {
+        showError(`Total allocation (${validation.total}%) exceeds 100%`);
+        return;
+    }
+
+    const breakdown = Object.entries(percentages).map(([category, percent]) => ({
+        category,
+        amount: (amount * (parseFloat(percent) / 100)).toFixed(2)
+    }));
+
+    updateChart(breakdown);
+    updateBreakdownList(breakdown);
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('budgetError') || createErrorElement();
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('hidden');
+    setTimeout(() => errorDiv.classList.add('hidden'), 3000);
+}
+
+function createErrorElement() {
+    const errorDiv = document.createElement('div');
+    errorDiv.id = 'budgetError';
+    errorDiv.className = 'bg-red-100 text-red-600 p-2 rounded-lg mb-4 hidden';
+    document.querySelector('.space-y-6').prepend(errorDiv);
+    return errorDiv;
+}
+
+function updateChart(breakdown) {
+    const ctx = document.getElementById('budgetPieChart').getContext('2d');
+    
+    if (budgetChart) {
+        budgetChart.destroy();
+    }
+
+    budgetChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: breakdown.map(item => item.category),
+            datasets: [{
+                data: breakdown.map(item => item.amount),
+                backgroundColor: [
+                    '#60A5FA',
+                    '#34D399',
+                    '#FBBF24',
+                    '#F87171',
+                    '#A78BFA'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            const value = context.raw;
+                            const total = context.dataset.data.reduce((sum, val) => sum + parseFloat(val), 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return `₹${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+    </script>
+</body>
+</html>

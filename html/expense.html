@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinEase Expense Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .sidebar.active {
+            transform: translateX(0);
+        }
+        .overlay {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body class="bg-blue-100">
+    <nav class="bg-blue-600 shadow fixed w-full top-0 z-30">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <button id="menuBtn" class="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-all ">
+                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <h1 class="text-2xl font-bold text-white ml-3">Expense Tracker</h1>
+                </div>
+                <div class="flex items-center">
+                    <span id="userName" class="text-white mr-4"></span>
+                    <button onclick="logout()" class="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-red-500 hover:scale-105 transition-transform hover:shadow-lg">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="overlay" class="overlay fixed inset-0 bg-black bg-opacity-50 z-40"></div>
+    <div id="sidebar" class="sidebar fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-xl font-bold text-gray-800">Menu</h2>
+                <button id="closeMenu" class="text-gray-600 hover:text-gray-800">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <a href="dashboard.html" class="block text-gray-600 hover:text-gray-800 py-2">Dashboard</a>
+                <a href="budget.html" class="block text-gray-600 hover:text-gray-800 py-2">Budget Planner</a>
+                <a href="sip.html" class="block text-gray-600 hover:text-gray-800 py-2">SIP Calculator</a>
+                <a href="expense.html" class="block text-gray-600 hover:text-gray-800 py-2">Expense Tracker</a>
+                <a href="ssp.html" class="block text-gray-600 hover:text-gray-800 py-2">SSP Calculator</a>
+            </div>
+        </div>
+    </div>
+
+    <main class="container mx-auto px-6 py-8 mt-16">
+        <div class="grid md:grid-cols-2 gap-8">
+            <!-- Start Tracking Form -->
+            <div id="startTracking" class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold mb-4">Start Expense Tracking</h2>
+                <form id="startTrackingForm" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Initial Amount (₹)</label>
+                        <input type="number" id="initialAmount" required min="0"
+                               class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                        Start Tracking
+                    </button>
+                </form>
+            </div>
+
+            <!-- Add Expense Form -->
+            <div id="addExpense" class="bg-white rounded-lg shadow-md p-6 hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">Add Expense</h2>
+                    <div>
+                        <span class="text-sm text-gray-600">Remaining Balance:</span>
+                        <span id="remainingBalance" class="ml-2 font-semibold text-green-600">₹0</span>
+                    </div>
+                </div>
+                <form id="addExpenseForm" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Item/Category</label>
+                        <input type="text" id="expenseItem" required
+                               class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 mb-2">Amount (₹)</label>
+                        <input type="number" id="expenseAmount" required min="0"
+                               class="w-full border rounded p-2 focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                        Add Expense
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Expense Summary -->
+        <div id="expenseSummary" class="mt-8 md:grid-cols-2 gap-8 hidden">
+            <!-- Pie Chart -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-bold mb-4">Expense Distribution</h3>
+                <div class="h-64">
+                    <canvas id="expenseChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Expense List -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold">Expense History</h3>
+                    <button id="finishTracking" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                        Finish Tracking
+                    </button>
+                </div>
+                <div id="expenseList" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <!-- Final Summary (Hidden initially) -->
+        <div id="finalSummary" class="mt-8 bg-white rounded-lg shadow-md p-6 hidden">
+            <h2 class="text-2xl font-bold mb-6">Expense Summary</h2>
+            <div class="grid md:grid-cols-3 gap-4 mb-6">
+                <div class="p-4 bg-blue-50 rounded-lg">
+                    <h4 class="font-medium text-gray-600">Initial Amount</h4>
+                    <p id="summaryInitial" class="text-2xl text-blue-600"></p>
+                </div>
+                <div class="p-4 bg-red-50 rounded-lg">
+                    <h4 class="font-medium text-gray-600">Total Spent</h4>
+                    <p id="summarySpent" class="text-2xl text-red-600"></p>
+                </div>
+                <div class="p-4 bg-green-50 rounded-lg">
+                    <h4 class="font-medium text-gray-600">Saved Amount</h4>
+                    <p id="summarySaved" class="text-2xl text-green-600"></p>
+                </div>
+            </div>
+            <div id="finalExpenseList" class="space-y-4"></div>          
+        <button onclick="window.location.href='dashboard.html'" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 mx-auto block">Return to Dashboard</button>
+        </div>
+    </main>
+    <script>
+       let chart = null;
+const API_URL = 'http://localhost:3000/api';
+
+// Core Functions
+function checkAuth() {
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = 'login.html';
+    return token;
+}
+
+function displayAmount(amount) {
+    return `₹${amount.toLocaleString('en-IN')}`;
+}
+
+// UI Updates
+function toggleSections(show, hide) {
+    hide.forEach(id => document.getElementById(id).classList.add('hidden'));
+    show.forEach(id => document.getElementById(id).classList.remove('hidden'));
+}
+
+function updateBalance(amount) {
+    document.getElementById('remainingBalance').textContent = displayAmount(amount);
+}
+
+function updateExpenseList(expenses) {
+    document.getElementById('expenseList').innerHTML = expenses.map(exp => `
+        <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="font-semibold">${exp.item}</h4>
+            <p class="text-xl text-red-600">${displayAmount(exp.amount)}</p>
+            <p class="text-sm text-gray-500">${new Date(exp.date).toLocaleDateString()}</p>
+        </div>
+    `).join('');
+}
+
+// Chart Functions
+function updateChart(data) {
+    const ctx = document.getElementById('expenseChart').getContext('2d');
+    if (chart) chart.destroy();
+    
+    const spent = data.initialAmount - data.remainingAmount;
+    chart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Remaining', 'Spent'],
+            datasets: [{
+                data: [data.remainingAmount, spent],
+                backgroundColor: ['#34D399', '#F87171']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+}
+
+// API Calls
+async function apiCall(endpoint, method = 'GET', body = null) {
+    try {
+        const response = await fetch(`${API_URL}${endpoint}`, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${checkAuth()}`
+            },
+            ...(body && { body: JSON.stringify(body) })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'API call failed');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error(`API Error (${endpoint}):`, error);
+        throw error;
+    }
+}
+
+// Event Handlers
+async function handleStartTracking(e) {
+    e.preventDefault();
+    try {
+        const data = await apiCall('/expense/start', 'POST', {
+            initialAmount: Number(document.getElementById('initialAmount').value)
+        });
+        toggleSections(['addExpense', 'expenseSummary'], ['startTracking']);
+        updateBalance(data.remainingAmount);
+        updateChart(data);
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+async function handleAddExpense(e) {
+    e.preventDefault();
+    const amount = Number(document.getElementById('expenseAmount').value);
+    const item = document.getElementById('expenseItem').value;
+
+    try {
+        const currentData = await apiCall('/expense/current', 'GET');
+        const remainingBalance = currentData.remainingAmount;
+
+        if (amount > remainingBalance) {
+            const deficit = amount - remainingBalance;
+            const warningDiv = document.createElement('div');
+            warningDiv.id = 'deficitWarning';
+            warningDiv.innerHTML = `
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-red-700 font-medium">Deficit Warning</p>
+                            <p class="text-red-600 mt-1">This expense will exceed your balance by ${displayAmount(deficit)}</p>
+                            <p class="text-sm text-red-500 mt-1">Available: ${displayAmount(remainingBalance)}</p>
+                        </div>
+                    </div>
+                </div>`;
+
+            // Remove existing warning if any
+            const existingWarning = document.getElementById('deficitWarning');
+            if (existingWarning) existingWarning.remove();
+
+            // Add new warning before the form
+            document.getElementById('addExpenseForm').insertAdjacentElement('beforebegin', warningDiv);
+
+            if (!confirm('Do you want to proceed with this expense?')) {
+                return;
+            }
+        }
+
+        const data = await apiCall('/expense/add', 'POST', { item, amount });
+        updateBalance(data.remainingAmount);
+        updateChart(data);
+        updateExpenseList(data.expenses);
+        e.target.reset();
+
+        // Remove warning after successful addition
+        const warningDiv = document.getElementById('deficitWarning');
+        if (warningDiv) warningDiv.remove();
+
+    } catch (error) {
+        console.error('Error:', error);
+        alert(error.message);
+    }
+}
+
+async function handleFinishTracking() {
+    if (!confirm('Are you sure you want to finish tracking?')) return;
+    try {
+        const data = await apiCall('/expense/finish', 'DELETE');
+        toggleSections(['finalSummary'], ['addExpense', 'expenseSummary']);
+        showFinalSummary(data);
+    } catch (error) {
+        alert(error.message);
+    }
+}
+
+function showFinalSummary(data) {
+    const spent = data.initialAmount - data.remainingAmount;
+    document.getElementById('summaryInitial').textContent = displayAmount(data.initialAmount);
+    document.getElementById('summarySpent').textContent = displayAmount(spent);
+    document.getElementById('summarySaved').textContent = displayAmount(data.remainingAmount);
+    
+    const expensesByCategory = data.expenses.reduce((acc, exp) => {
+        acc[exp.item] = (acc[exp.item] || 0) + exp.amount;
+        return acc;
+    }, {});
+    
+    document.getElementById('finalExpenseList').innerHTML = Object.entries(expensesByCategory)
+        .map(([item, amount]) => `
+            <div class="flex justify-between p-2">
+                <span class="font-semibold">${item}</span>
+                <span>${displayAmount(amount)}</span>
+            </div>
+        `).join('');
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    // Menu handlers
+    const menuBtn = document.getElementById('menuBtn');
+    const closeMenu = document.getElementById('closeMenu');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+
+    menuBtn.addEventListener('click', () => {
+        sidebar.classList.add('active');
+        overlay.classList.add('active');
+    }); 
+
+    const closeMenuFunction = () => {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+    };
+
+    closeMenu.addEventListener('click', closeMenuFunction);
+    overlay.addEventListener('click', closeMenuFunction);
+
+    // Form handlers
+    document.getElementById('startTrackingForm').addEventListener('submit', handleStartTracking);
+    document.getElementById('addExpenseForm').addEventListener('submit', handleAddExpense);
+    document.getElementById('finishTracking').addEventListener('click', handleFinishTracking);
+
+    // Load current tracking if exists
+    apiCall('/expense/current').then(data => {
+        if (data) {
+            toggleSections(['addExpense', 'expenseSummary'], ['startTracking']);
+            updateBalance(data.remainingAmount);
+            updateChart(data);
+            updateExpenseList(data.expenses);
+        }
+    }).catch(console.error);
+});
+function displayUsername() {
+    const username = localStorage.getItem('username');
+    if (username) {
+        document.getElementById('userName').textContent = username;
+        document.getElementById('userNameSidebar').textContent = username;
+        document.getElementById('userNameDisplay').textContent = `Welcome back, ${username}!`;
+        document.getElementById('userEmail').textContent = localStorage.getItem('email') || '';
+    }
+}
+    function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+            }
+        }
+window.addEventListener('load', () => {
+    displayUsername();
+});
+   </script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinEase - Student Financial Planning</title>
+    <script src="https://unpkg.com/alpinejs" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body x-data="{ isOpen: false }" class="bg-gray-50">
+    <header class="fixed w-full top-0 bg-blue-600 z-50">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <a href="index.html" class="text-white text-2xl font-bold">FinEase</a>
+                
+                <!-- Desktop Navigation -->
+                <nav class="hidden md:flex items-center space-x-8">
+                    <ul class="flex space-x-6">
+                        <li><a href="index.html" class="text-white hover:text-blue-200">Home</a></li>
+                        <li><a href="features.html" class="text-white hover:text-blue-200">Features</a></li>
+                        <li><a href="about.html" class="text-white hover:text-blue-200">About</a></li>
+                    </ul>
+                    <div class="flex space-x-4">
+                        <a href="login.html" class="px-4 py-2 rounded-lg bg-blue-700 text-white hover:bg-blue-800">Login</a>
+                        <a href="signup.html" class="px-4 py-2 rounded-lg bg-white text-blue-600 hover:bg-blue-50">Sign Up</a>
+                    </div>
+                </nav>
+
+                <!-- Mobile Menu Button -->
+                <button @click="isOpen = !isOpen" class="md:hidden text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path x-show="!isOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        <path x-show="isOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div x-show="isOpen" 
+             class="md:hidden bg-white border-b border-gray-200"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 transform -translate-y-2"
+             x-transition:enter-end="opacity-100 transform translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 transform translate-y-0"
+             x-transition:leave-end="opacity-0 transform -translate-y-2">
+            <nav class="px-4 pt-2 pb-4 space-y-2">
+                <a href="index.html" class="block py-2 text-gray-700 hover:text-blue-600">Home</a>
+                <a href="features.html" class="block py-2 text-gray-700 hover:text-blue-600">Features</a>
+                <a href="about.html" class="block py-2 text-gray-700 hover:text-blue-600">About</a>
+                <div class="pt-4 space-y-2">
+                    <a href="login.html" class="block w-full text-center px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Login</a>
+                    <a href="signup.html" class="block w-full text-center px-4 py-2 rounded-lg bg-gray-100 text-blue-600 hover:bg-gray-200">Sign Up</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto mt-24 p-4">
+        <!-- Your existing main content here -->
+        <section class="text-center mb-16">
+            <h1 class="text-5xl font-bold text-gray-800 mb-6">Smart Financial Planning for Students</h1>
+            <p class="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+                Take control of your finances with FinEase - the all-in-one platform designed specifically for students to track expenses, set budgets, and make informed financial decisions.
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="signup.html" class="px-8 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">Get Started</a>
+                <a href="features.html" class="px-8 py-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Learn More</a>
+            </div>
+        </section>
+
+        <section class="grid md:grid-cols-3 gap-8">
+            <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                <h3 class="text-2xl font-semibold text-gray-800 mb-4">Expense Tracking</h3>
+                <p class="text-gray-600">Track your expenses and get insights into your spending habits.</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                <h3 class="text-2xl font-semibold text-gray-800 mb-4">Budgeting</h3>
+                <p class="text-gray-600">Set monthly budgets and get notified when you're close to exceeding them.</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+                <h3 class="text-2xl font-semibold text-gray-800 mb-4">Financial Reports</h3>
+                <p class="text-gray-600">Generate detailed financial reports to understand your spending patterns.</p>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
+
+

@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Budget Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar { transform: translateX(-100%); transition: transform 0.3s ease-in-out; }
+        .sidebar.active { transform: translateX(0); }
+        .overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-in-out; }
+        .overlay.active { opacity: 1; visibility: visible; }
+    </style>
+</head>
+<body class="bg-blue-100 py-12">
+    <nav class="bg-blue-600 shadow fixed w-full top-0 z-30">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <button id="menuBtn" class="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-all ">
+                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <h1 class="text-2xl font-bold text-white ml-3">Budget Planner</h1>
+                </div>
+                <div class="flex items-center">
+                    <span id="userName" class="text-white mr-4"></span>
+                    <button onclick="logout()" class="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-red-500 hover:scale-105 transition-transform hover:shadow-lg">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="overlay" class="overlay fixed inset-0 bg-black bg-opacity-50 z-40"></div>
+    <div id="sidebar" class="sidebar fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-xl font-bold text-gray-800">Menu</h2>
+                <button id="closeMenu" class="text-gray-600 hover:text-gray-800">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <a href="dashboard.html" class="block text-gray-600 hover:text-gray-800 py-2">Dashboard</a>
+                <a href="budget.html" class="block text-gray-600 hover:text-gray-800 py-2">Budget Planner</a>
+                <a href="sip.html" class="block text-gray-600 hover:text-gray-800 py-2">SIP Calculator</a>
+                <a href="expense.html" class="block text-gray-600 hover:text-gray-800 py-2">Expense Tracker</a>
+                <a href="ssp.html" class="block text-gray-600 hover:text-gray-800 py-2">SSP Calculator</a>
+            </div>
+        </div>
+    </div>
+    <main class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- Income Input -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Monthly Budget Planner</h2>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-600 text-lg">₹</span>
+                    <input type="number" 
+                           id="monthlyIncome" 
+                           class="w-full pl-8 pr-4 py-3 text-lg border rounded-lg focus:ring-2 focus:ring-blue-500"
+                           placeholder="Enter your monthly income"
+                           onchange="updateBudget()">
+                </div>
+            </div>
+
+            <!-- Category Management -->
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Budget Allocation -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-800">Budget Allocation</h3>
+                        <button onclick="showAddCategory()" 
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Add Category
+                        </button>
+                    </div>
+                    <div id="budgetSliders" class="space-y-6"></div>
+                    <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium text-gray-700">Total Allocated</span>
+                            <span id="totalAllocation" class="text-xl font-bold text-blue-600">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget Visualization -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6">Distribution</h3>
+                    <canvas id="budgetChart" class="mb-6"></canvas>
+                    <div id="breakdownList" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Category Modal -->
+    <div id="categoryModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-96">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Add New Category</h3>
+            <form id="categoryForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Category Name</label>
+                    <input type="text" id="newCategoryName" class="mt-1 w-full p-2 border rounded-lg" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Initial Allocation (%)</label>
+                    <input type="number" id="newCategoryAllocation" class="mt-1 w-full p-2 border rounded-lg" 
+                           min="0" max="80" required>
+                    <p class="mt-1 text-sm text-gray-500">Available: <span id="availableAllocation">0</span>%</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Color</label>
+                    <input type="color" id="newCategoryColor" class="mt-1 w-full h-10" required>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="hideModal()" 
+                            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Add
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    // Constants and State Management
+    const MAX_ALLOCATION = 100;
+    const MIN_SAVINGS = 20;
+    let budgetChart = null;
+
+    const categories = [
+    { id: 'savings', name: 'Savings', color: '#A78BFA', default: MIN_SAVINGS }
+];
+
+let customCategories = [];
+
+    // Category Management
+    function showAddCategory() {
+        document.getElementById('categoryModal').classList.remove('hidden');
+        document.getElementById('categoryModal').classList.add('flex');
+        updateAvailableAllocation();
+    }
+
+    function hideModal() {
+        document.getElementById('categoryModal').classList.add('hidden');
+        document.getElementById('categoryForm').reset();
+    }
+
+    function addCategory(event) {
+        event.preventDefault();
+        const name = document.getElementById('newCategoryName').value;
+        const allocation = parseInt(document.getElementById('newCategoryAllocation').value);
+        const color = document.getElementById('newCategoryColor').value;
+        
+        const id = name.toLowerCase().replace(/\s+/g, '_');
+        
+        if ([...categories, ...customCategories].some(cat => cat.id === id)) {
+            alert('Category already exists');
+            return;
+        }
+        
+        customCategories.push({ id, name, color, default: allocation });
+        hideModal();
+        renderSliders();
+        updateBudget();
+        saveToLocal();
+    }
+
+    function updateAvailableAllocation() {
+        const currentTotal = [...categories, ...customCategories].reduce((sum, cat) => sum + cat.default, 0);
+        const available = MAX_ALLOCATION - currentTotal;
+        document.getElementById('availableAllocation').textContent = available;
+    }
+
+    // Budget Management
+    function renderSliders() {
+    const container = document.getElementById('budgetSliders');
+    container.innerHTML = [...categories, ...customCategories].map(category => `
+        <div class="space-y-2">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <label class="font-medium text-gray-700">
+                        ${category.name}
+                        ${category.id === 'savings' ? 
+                            '<span class="text-sm text-gray-500">(Recommended: 20%+)</span>' : ''}
+                    </label>
+                    ${category.id !== 'savings' ? `
+                        <button onclick="deleteCategory('${category.id}')" 
+                                class="text-red-500 hover:text-red-700">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    ` : ''}
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-blue-600" id="${category.id}Percent">${category.default}%</span>
+                    <span class="text-gray-600" id="${category.id}Amount">₹0</span>
+                </div>
+            </div>
+            <input type="range" 
+                   class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer"
+                   min="0" 
+                   max="100" 
+                   value="${category.default}"
+                   oninput="updateAllocation(this, '${category.id}')">
+        </div>
+    `).join('');
+}
+function deleteCategory(categoryId) {
+    if (!confirm('Are you sure you want to delete this category?')) {
+        return;
+    }
+
+    const categoryIndex = customCategories.findIndex(cat => cat.id === categoryId);
+    if (categoryIndex === -1) return;
+
+    const deletedCategory = customCategories[categoryIndex];
+    const deletedAllocation = parseInt(document.querySelector(`input[oninput*="${categoryId}"]`).value);
+    
+    // Remove category
+    customCategories.splice(categoryIndex, 1);
+
+    // Redistribute allocation to savings
+    if (deletedAllocation > 0) {
+        const savingsSlider = document.querySelector(`input[oninput*="savings"]`);
+        const currentSavings = parseInt(savingsSlider.value);
+        savingsSlider.value = currentSavings + deletedAllocation;
+        document.getElementById('savingsPercent').textContent = `${savingsSlider.value}%`;
+    }
+
+    // Update UI
+    renderSliders();
+    updateBudget();
+    saveToLocal();
+}
+
+function updateAvailableAllocation() {
+    // Calculate total from all categories including current savings value
+    const currentTotal = [...categories, ...customCategories].reduce((sum, cat) => {
+        if (cat.id === 'savings') {
+            const savingsSlider = document.querySelector(`input[oninput*="savings"]`);
+            return sum + parseInt(savingsSlider?.value || cat.default);
+        }
+        return sum + cat.default;
+    }, 0);
+
+    // Calculate available percentage
+    const available = MAX_ALLOCATION - currentTotal;
+    
+    // Update UI
+    document.getElementById('availableAllocation').textContent = available;
+    document.getElementById('newCategoryAllocation').max = available;
+}
+
+// Update updateAllocation to call updateAvailableAllocation
+function updateAllocation(slider, id) {
+    const newValue = parseInt(slider.value);
+    
+    // Savings warning
+    if (id === 'savings' && newValue < MIN_SAVINGS) {
+        let warningEl = document.getElementById('savingsWarning');
+        if (!warningEl) {
+            warningEl = document.createElement('div');
+            warningEl.id = 'savingsWarning';
+            warningEl.className = 'text-yellow-600 text-sm mt-1';
+            slider.parentElement.appendChild(warningEl);
+        }
+        warningEl.textContent = `Warning: Setting savings below ${MIN_SAVINGS}% is not recommended`;
+    } else if (id === 'savings') {
+        const warningEl = document.getElementById('savingsWarning');
+        if (warningEl) warningEl.remove();
+    }
+
+    // Update allocation and validate total
+    const otherTotal = [...categories, ...customCategories].reduce((sum, cat) => {
+        if (cat.id === id) return sum;
+        const value = parseInt(document.querySelector(`input[oninput*="${cat.id}"]`).value);
+        return sum + value;
+    }, 0);
+
+    if (otherTotal + newValue > MAX_ALLOCATION) {
+        slider.value = MAX_ALLOCATION - otherTotal;
+    }
+    
+    document.getElementById(`${id}Percent`).textContent = `${slider.value}%`;
+    
+    // Update totals
+    const totalAllocated = [...categories, ...customCategories].reduce((sum, cat) => {
+        const value = parseInt(document.querySelector(`input[oninput*="${cat.id}"]`).value);
+        return sum + value;
+    }, 0);
+
+    document.getElementById('totalAllocation').textContent = `${totalAllocated}%`;
+    document.getElementById('totalAllocation').classList.toggle('text-red-600', totalAllocated > MAX_ALLOCATION);
+    
+    updateBudget();
+    saveToLocal();
+}
+
+    function updateBudget() {
+        const income = parseFloat(document.getElementById('monthlyIncome').value) || 0;
+        const data = [...categories, ...customCategories].map(cat => {
+            const percent = parseFloat(document.querySelector(`input[oninput*="${cat.id}"]`).value);
+            const amount = (income * (percent / 100)).toFixed(2);
+            document.getElementById(`${cat.id}Amount`).textContent = `₹${amount}`;
+            return { category: cat.name, amount, percent, color: cat.color };
+        });
+
+        updateChart(data);
+        updateBreakdown(data);
+    }
+
+    function updateChart(data) {
+        const ctx = document.getElementById('budgetChart').getContext('2d');
+        
+        if (budgetChart) {
+            budgetChart.destroy();
+        }
+
+        budgetChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: data.map(item => item.category),
+                datasets: [{
+                    data: data.map(item => item.amount),
+                    backgroundColor: data.map(item => item.color)
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const value = context.raw;
+                                const percent = data[context.dataIndex].percent;
+                                return `₹${value} (${percent}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateBreakdown(data) {
+        const list = document.getElementById('breakdownList');
+        list.innerHTML = data.map(item => `
+            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 rounded-full" style="background-color: ${item.color}"></div>
+                    <span class="font-medium">${item.category}</span>
+                </div>
+                <div class="text-right">
+                    <span class="font-semibold">₹${item.amount}</span>
+                    <span class="text-sm text-gray-600 ml-2">${item.percent}%</span>
+                </div>
+            </div>
+        `).join('');
+    }
+    async function saveBudget() {
+    const username = localStorage.getItem('username');
+    if (!username) return;
+
+    const budgetData = {
+        income: document.getElementById('monthlyIncome').value,
+        customCategories,
+        allocations: [...categories, ...customCategories].map(cat => ({
+            id: cat.id,
+            percent: document.querySelector(`input[oninput*="${cat.id}"]`).value
+        }))
+    };
+
+    showLoading();
+    try {
+        const response = await fetch('http://localhost:3000/api/budget/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify(budgetData)
+        });
+
+        if (!response.ok) throw new Error('Failed to save budget');
+        
+        // Backup to localStorage
+        localStorage.setItem(`budget_${username}`, JSON.stringify(budgetData));
+    } catch (error) {
+        console.error('Save failed:', error);
+        showError('Failed to save budget. Changes saved locally.');
+        localStorage.setItem(`budget_${username}`, JSON.stringify(budgetData));
+    } finally {
+        hideLoading();
+    }
+}
+
+async function loadBudget() {
+    const username = localStorage.getItem('username');
+    if (!username) return;
+
+    showLoading();
+    try {
+        const response = await fetch('http://localhost:3000/api/budget/load', {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+
+        let data;
+        if (response.ok) {
+            data = await response.json();
+        } else {
+            // Fallback to localStorage
+            const saved = localStorage.getItem(`budget_${username}`);
+            if (saved) {
+                data = JSON.parse(saved);
+            }
+        }
+
+        if (data) {
+            document.getElementById('monthlyIncome').value = data.income;
+            customCategories = data.customCategories || [];
+            renderSliders();
+            data.allocations.forEach(allocation => {
+                const slider = document.querySelector(`input[oninput*="${allocation.id}"]`);
+                if (slider) {
+                    slider.value = allocation.percent;
+                    document.getElementById(`${allocation.id}Percent`).textContent = `${allocation.percent}%`;
+                }
+            });
+            updateBudget();
+        }
+    } catch (error) {
+        console.error('Load failed:', error);
+        showError('Failed to load budget from server. Using local data.');
+    } finally {
+        hideLoading();
+    }
+}
+function showLoading() {
+    const spinner = document.createElement('div');
+    spinner.id = 'loadingSpinner';
+    spinner.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    spinner.innerHTML = `
+        <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+    `;
+    document.body.appendChild(spinner);
+}
+
+function hideLoading() {
+    const spinner = document.getElementById('loadingSpinner');
+    if (spinner) spinner.remove();
+}
+
+function showError(message) {
+    const alert = document.createElement('div');
+    alert.className = 'fixed top-4 right-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4';
+    alert.textContent = message;
+    document.body.appendChild(alert);
+    setTimeout(() => alert.remove(), 3000);
+}
+    // Local Storage
+    function saveToLocal() {
+    const username = localStorage.getItem('username');
+    if (!username) return;
+
+    const data = {
+        income: document.getElementById('monthlyIncome').value,
+        customCategories,
+        allocations: [...categories, ...customCategories].map(cat => ({
+            id: cat.id,
+            percent: document.querySelector(`input[oninput*="${cat.id}"]`).value
+        })),
+        lastUpdated: new Date().toISOString()
+    };
+    
+    localStorage.setItem(`budget_${username}`, JSON.stringify(data));
+}
+function loadFromLocal() {
+    const username = localStorage.getItem('username');
+    if (!username) return;
+
+    const saved = localStorage.getItem(`budget_${username}`);
+    if (saved) {
+        const data = JSON.parse(saved);
+        document.getElementById('monthlyIncome').value = data.income;
+        if (data.customCategories) {
+            customCategories = data.customCategories;
+        }
+        renderSliders();
+        data.allocations.forEach(allocation => {
+            const slider = document.querySelector(`input[oninput*="${allocation.id}"]`);
+            if (slider) {
+                slider.value = allocation.percent;
+                document.getElementById(`${allocation.id}Percent`).textContent = `${allocation.percent}%`;
+            }
+        });
+        updateBudget();
+    }
+}
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('categoryForm').addEventListener('submit', addCategory);
+        renderSliders();
+        loadFromLocal();
+    });
+    document.addEventListener('DOMContentLoaded', () => {
+            const menuBtn = document.getElementById('menuBtn');
+            const closeMenu = document.getElementById('closeMenu');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+
+            menuBtn.addEventListener('click', () => {
+                sidebar.classList.add('active');
+                overlay.classList.add('active');
+            });
+
+            const closeMenuFunction = () => {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            };
+
+            closeMenu.addEventListener('click', closeMenuFunction);
+            overlay.addEventListener('click', closeMenuFunction);
+        });
+
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+            }
+        }
+
+        function displayUsername() {
+        const username = localStorage.getItem('username');
+    if (username) {
+        document.getElementById('userName').textContent = username;
+        document.getElementById('userNameSidebar').textContent = username;
+        document.getElementById('userNameDisplay').textContent = `Welcome back, ${username}!`;
+        document.getElementById('userEmail').textContent = localStorage.getItem('email') || '';
+    }
+}
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+            }
+        }
+
+        window.addEventListener('load', () => {
+    checkAuth();
+    displayUsername();
+});
+    </script>
+</body>
+</html>
