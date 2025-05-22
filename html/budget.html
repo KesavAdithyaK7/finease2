@@ -591,18 +591,42 @@ function loadFromLocal() {
         }
 
         function displayUsername() {
-        const username = localStorage.getItem('username');
-    if (username) {
-        document.getElementById('userName').textContent = username;
-        document.getElementById('userNameSidebar').textContent = username;
-        document.getElementById('userNameDisplay').textContent = `Welcome back, ${username}!`;
-        document.getElementById('userEmail').textContent = localStorage.getItem('email') || '';
-    }
-}
+            const username = localStorage.getItem('username');
+            if (username) {
+                // Update username in nav bar if element exists
+                const userNameEl = document.getElementById('userName');
+                if (userNameEl) userNameEl.textContent = username;
+                
+                // Update username in sidebar if element exists
+                const userNameSidebarEl = document.getElementById('userNameSidebar');
+                if (userNameSidebarEl) userNameSidebarEl.textContent = username;
+                
+                // These elements are optional and might not exist in all pages
+                const userNameDisplayEl = document.getElementById('userNameDisplay');
+                if (userNameDisplayEl) userNameDisplayEl.textContent = `Welcome back, ${username}!`;
+                
+                const userEmailEl = document.getElementById('userEmail');
+                if (userEmailEl) userEmailEl.textContent = localStorage.getItem('email') || '';
+            }
+        }
 
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
+                // Clear all auth-related items
                 localStorage.removeItem('token');
+                localStorage.removeItem('username');
+                localStorage.removeItem('email');
+                
+                // You might also want to clear any cached budget data
+                const username = localStorage.getItem('username');
+                if (username) {
+                    localStorage.removeItem(`budget_${username}`);
+                }
+                
+                // Optional: Clear ALL localStorage if you want a complete logout
+                // localStorage.clear();
+                
+                // Redirect to login page
                 window.location.href = 'login.html';
             }
         }
