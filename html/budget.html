@@ -385,7 +385,8 @@ function updateAllocation(slider, id) {
                         }
                     }
                 }
-            });
+            }
+        });
     }
 
     function updateBreakdown(data) {
@@ -611,23 +612,24 @@ function loadFromLocal() {
         }
 
         function logout() {
+            console.log('Logout function called');
             if (confirm('Are you sure you want to logout?')) {
-                // Clear all auth-related items
+                // Get username before clearing it
+                const username = localStorage.getItem('username');
+                
+                // Clear auth-related items
                 localStorage.removeItem('token');
-                localStorage.removeItem('username');
                 localStorage.removeItem('email');
                 
-                // You might also want to clear any cached budget data
-                const username = localStorage.getItem('username');
+                // Clear cached budget data if username exists
                 if (username) {
                     localStorage.removeItem(`budget_${username}`);
+                    localStorage.removeItem('username'); // Remove username last
                 }
                 
-                // Optional: Clear ALL localStorage if you want a complete logout
-                // localStorage.clear();
-                
-                // Redirect to login page
-                window.location.href = 'login.html';
+                // Force redirection to login page
+                console.log('Logging out, redirecting to login page...');
+                window.location.replace('login.html');
             }
         }
 
