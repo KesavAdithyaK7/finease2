@@ -2,10 +2,36 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login - FinEase</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Login | FinEase</title>
+    <!-- Unified Font - Inter -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        blue: {
+                            100: '#EBF5FF',
+                            600: '#3B82F6',
+                            700: '#2563EB'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Global styles -->
+    <link rel="stylesheet" href="../css/global.css">
+    <!-- Page-specific styles -->
+    <style>
+        /* Add page-specific styles here */
+    </style>
   </head>
   <body class="bg-gray-50">
     <div class="min-h-screen flex items-center justify-center">

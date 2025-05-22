@@ -1,10 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Standard Mobile-Optimized Header Template for FinEase -->
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finease - Contact Us</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Contact Us | FinEase</title>
+    <!-- Unified Font - Inter -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        blue: {
+                            100: '#EBF5FF',
+                            600: '#3B82F6',
+                            700: '#2563EB'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Global styles -->
+    <link rel="stylesheet" href="../css/global.css">
+    <!-- Page-specific styles -->
+    <style>
+        /* Add page-specific styles here */
+    </style>
 </head>
 <body class="bg-gray-100 font-sans">
     <header class="fixed top-0 left-0 right-0 bg-blue-600 shadow-md z-50">
