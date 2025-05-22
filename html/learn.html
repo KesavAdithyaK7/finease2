@@ -2,13 +2,35 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>Learn Investing | FinEase</title>
+    <!-- Unified Font - Inter -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <style>
+        /* Base styles */
+        body, html {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .section-card {
+            transform: translateY(0);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
         .section-card:hover {
             transform: translateY(-5px);
-            transition: transform 0.3s ease;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
         .sidebar {
             transform: translateX(-100%);
@@ -26,15 +48,59 @@
             opacity: 1;
             visibility: visible;
         }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            /* Quick navigation scrollable */
+            .quick-nav-container {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scroll-snap-type: x mandatory;
+                padding-bottom: 10px;
+            }
+            .quick-nav-item {
+                scroll-snap-align: center;
+                white-space: nowrap;
+                min-width: max-content;
+            }
+            
+            /* Better touch targets */
+            a, button {
+                min-height: 44px;
+                display: inline-flex;
+                align-items: center;
+            }
+            
+            /* Adjust spacing for mobile */
+            .section-spacing {
+                margin-bottom: 2rem;
+            }
+            
+            /* Sidebar width */
+            .sidebar {
+                width: 85% !important;
+            }
+            
+            /* Smaller headings */
+            h1 {
+                font-size: 1.75rem !important;
+            }
+            h2 {
+                font-size: 1.5rem !important;
+            }
+            h3 {
+                font-size: 1.25rem !important;
+            }
+        }
     </style>
 </head>
-<body class="bg-blue-100">
+<body class="bg-blue-100 font-sans">
     <!-- Navigation (reusing from dashboard) -->
     <nav class="bg-blue-600 shadow fixed w-full top-0 z-30">
         <div class="container mx-auto px-4">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
-                    <button id="menuBtn" class="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-all ">
+                    <button id="menuBtn" class="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-all">
                         <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                         </svg>
@@ -42,7 +108,7 @@
                     <h1 class="text-2xl font-bold text-white ml-3">FinEase</h1>
                 </div>
                 <div class="flex items-center">
-                    <span id="userName" class="text-white mr-4"></span>
+                    <span id="userName" class="text-white mr-4 hidden md:inline">User</span>
                     <button onclick="logout()" class="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-red-500 hover:scale-105 transition-transform hover:shadow-lg">
                         Logout
                     </button>
@@ -53,58 +119,62 @@
 
     <div id="overlay" class="overlay fixed inset-0 bg-black bg-opacity-50 z-40"></div>
 
-<div id="sidebar" class="sidebar fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50">
-    <div class="p-6">
-        <div class="flex justify-between items-center mb-8">
-            <h2 class="text-xl font-bold text-gray-800">Menu</h2>
-            <button id="closeMenu" class="text-gray-600 hover:text-gray-800">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
-        </div>
-        <div class="space-y-4">
-            <a href="dashboard.html" class="block text-gray-600 hover:text-gray-800 py-2">Dashboard</a>
-            <a href="budget.html" class="block text-gray-600 hover:text-gray-800 py-2">Budget Planner</a>
-            <a href="sip.html" class="block text-gray-600 hover:text-gray-800 py-2">SIP Calculator</a>
-            <a href="expense.html" class="block text-gray-600 hover:text-gray-800 py-2">Expense Sheet</a>
-            <a href="learn.html" class="block text-gray-600 hover:text-gray-800 py-2">Learning Hub</a>
-            <a href="ssp.html" class="block text-gray-600 hover:text-gray-800 py-2">SSP Calculator</a>
+    <div id="sidebar" class="sidebar fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50">
+        <div class="p-6">
+            <div class="mb-6">
+                <p class="text-gray-600">Welcome,</p>
+                <p class="text-lg font-semibold text-blue-600" id="userNameSidebar">User</p>
+            </div>
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-xl font-bold text-gray-800">Menu</h2>
+                <button id="closeMenu" class="text-gray-600 hover:text-gray-800 p-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <a href="dashboard.html" class="block text-gray-600 hover:text-gray-800 py-2">Dashboard</a>
+                <a href="budget.html" class="block text-gray-600 hover:text-gray-800 py-2">Budget Planner</a>
+                <a href="sip.html" class="block text-gray-600 hover:text-gray-800 py-2">SIP Calculator</a>
+                <a href="expense.html" class="block text-gray-600 hover:text-gray-800 py-2">Expense Sheet</a>
+                <a href="learn.html" class="block text-gray-800 font-semibold py-2">Learning Hub</a>
+                <a href="ssp.html" class="block text-gray-600 hover:text-gray-800 py-2">SSP Calculator</a>
+            </div>
         </div>
     </div>
-</div>
     
-    <main class="container mx-auto px-6 py-8 mt-20">
+    <main class="container mx-auto px-4 md:px-6 py-6 md:py-8 mt-20">
         <!-- Hero Section -->
-        <div class="text-center mb-12">
-            <h1 class="text-4xl font-bold text-gray-800 mb-4">Investment Learning Hub</h1>
-            <p class="text-gray-600 text-lg">Master the basics of investing and secure your financial future</p>
+        <div class="text-center mb-8 md:mb-12">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-3 md:mb-4">Investment Learning Hub</h1>
+            <p class="text-gray-600 text-base md:text-lg">Master the basics of investing and secure your financial future</p>
         </div>
 
-        <!-- Quick Navigation -->
-        <div class="flex justify-center space-x-4 mb-12">
-            <a href="#basics" class="px-6 py-2 bg-blue-200 text-blue-600 rounded-full hover:bg-blue-300">Investment Basics</a>
-            <a href="#stocks" class="px-6 py-2 bg-blue-200 text-blue-600 rounded-full hover:bg-blue-300">Stock Market</a>
-            <a href="#sip" class="px-6 py-2 bg-blue-200 text-blue-600 rounded-full hover:bg-blue-300">SIP Guide</a>
-            <a href="#tips" class="px-6 py-2 bg-blue-200 text-blue-600 rounded-full hover:bg-blue-300">Money Saving Tips</a>
+        <!-- Quick Navigation - Scrollable on Mobile -->
+        <div class="quick-nav-container flex md:justify-center space-x-3 md:space-x-4 overflow-x-auto md:overflow-visible mb-8 md:mb-12 pb-2">
+            <a href="#basics" class="quick-nav-item px-4 md:px-6 py-2 bg-blue-200 text-blue-600 rounded-full hover:bg-blue-300 flex-shrink-0">Investment Basics</a>
+            <a href="#stocks" class="quick-nav-item px-4 md:px-6 py-2 bg-blue-200 text-blue-600 rounded-full hover:bg-blue-300 flex-shrink-0">Stock Market</a>
+            <a href="#sip" class="quick-nav-item px-4 md:px-6 py-2 bg-blue-200 text-blue-600 rounded-full hover:bg-blue-300 flex-shrink-0">SIP Guide</a>
+            <a href="#tips" class="quick-nav-item px-4 md:px-6 py-2 bg-blue-200 text-blue-600 rounded-full hover:bg-blue-300 flex-shrink-0">Money Saving Tips</a>
         </div>
 
         <!-- Investment Basics -->
-        <section id="basics" class="mb-16">
-            <h2 class="text-3xl font-bold text-gray-800 mb-6">Investment Basics</h2>
-            <div class="grid md:grid-cols-2 gap-8">
-                <div class="bg-white rounded-lg shadow-md p-6 section-card">
-                    <h3 class="text-xl font-semibold mb-4">Why Start Early?</h3>
-                    <ul class="space-y-3 text-gray-600">
+        <section id="basics" class="mb-10 md:mb-16 section-spacing">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6">Investment Basics</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+                <div class="bg-white rounded-lg shadow-md p-5 md:p-6 section-card">
+                    <h3 class="text-xl font-semibold mb-3 md:mb-4">Why Start Early?</h3>
+                    <ul class="space-y-2 md:space-y-3 text-gray-600">
                         <li>• Power of Compounding: Your money grows exponentially over time</li>
                         <li>• More Time to Recover: Can take calculated risks with longer investment horizon</li>
                         <li>• Building Good Habits: Develop financial discipline early</li>
                         <li>• Lower Investment Needs: Start with smaller amounts while young</li>
                     </ul>
                 </div>
-                <div class="bg-white rounded-lg shadow-md p-6 section-card">
-                    <h3 class="text-xl font-semibold mb-4">Types of Investments</h3>
-                    <ul class="space-y-3 text-gray-600">
+                <div class="bg-white rounded-lg shadow-md p-5 md:p-6 section-card">
+                    <h3 class="text-xl font-semibold mb-3 md:mb-4">Types of Investments</h3>
+                    <ul class="space-y-2 md:space-y-3 text-gray-600">
                         <li>• Stocks: Direct company ownership</li>
                         <li>• Mutual Funds: Professional managed portfolios</li>
                         <li>• Fixed Deposits: Safe, guaranteed returns</li>
@@ -115,13 +185,13 @@
         </section>
 
         <!-- Stock Market Guide -->
-        <section id="stocks" class="mb-16">
-            <h2 class="text-3xl font-bold text-gray-800 mb-6">Understanding the Stock Market</h2>
-            <div class="bg-white rounded-lg shadow-md p-8 section-card">
-                <div class="grid md:grid-cols-2 gap-8">
+        <section id="stocks" class="mb-10 md:mb-16 section-spacing">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6">Understanding the Stock Market</h2>
+            <div class="bg-white rounded-lg shadow-md p-5 md:p-8 section-card">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                     <div>
-                        <h3 class="text-xl font-semibold mb-4">Stock Market Basics</h3>
-                        <ul class="space-y-3 text-gray-600">
+                        <h3 class="text-xl font-semibold mb-3 md:mb-4">Stock Market Basics</h3>
+                        <ul class="space-y-2 md:space-y-3 text-gray-600">
                             <li>• What are Stocks: Partial ownership in companies</li>
                             <li>• How to Start: Opening demat account, KYC process</li>
                             <li>• Market Analysis: Technical vs Fundamental analysis</li>
@@ -129,8 +199,8 @@
                         </ul>
                     </div>
                     <div>
-                        <h3 class="text-xl font-semibold mb-4">Common Terms</h3>
-                        <ul class="space-y-3 text-gray-600">
+                        <h3 class="text-xl font-semibold mb-3 md:mb-4">Common Terms</h3>
+                        <ul class="space-y-2 md:space-y-3 text-gray-600">
                             <li>• Bull vs Bear Market</li>
                             <li>• Market Cap: Large, Mid, Small</li>
                             <li>• P/E Ratio: Price to Earnings</li>
@@ -142,13 +212,13 @@
         </section>
 
         <!-- SIP Guide -->
-        <section id="sip" class="mb-16">
-            <h2 class="text-3xl font-bold text-gray-800 mb-6">SIP Investment Guide</h2>
-            <div class="bg-white rounded-lg shadow-md p-8 section-card">
-                <div class="grid md:grid-cols-2 gap-8">
+        <section id="sip" class="mb-10 md:mb-16 section-spacing">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6">SIP Investment Guide</h2>
+            <div class="bg-white rounded-lg shadow-md p-5 md:p-8 section-card">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                     <div>
-                        <h3 class="text-xl font-semibold mb-4">Benefits of SIP</h3>
-                        <ul class="space-y-3 text-gray-600">
+                        <h3 class="text-xl font-semibold mb-3 md:mb-4">Benefits of SIP</h3>
+                        <ul class="space-y-2 md:space-y-3 text-gray-600">
                             <li>• Rupee Cost Averaging</li>
                             <li>• Disciplined Investing</li>
                             <li>• Start with as low as ₹500</li>
@@ -156,8 +226,8 @@
                         </ul>
                     </div>
                     <div>
-                        <h3 class="text-xl font-semibold mb-4">How to Start SIP</h3>
-                        <ol class="space-y-3 text-gray-600 list-decimal list-inside">
+                        <h3 class="text-xl font-semibold mb-3 md:mb-4">How to Start SIP</h3>
+                        <ol class="space-y-2 md:space-y-3 text-gray-600 list-decimal list-inside">
                             <li>Choose a mutual fund</li>
                             <li>Decide investment amount</li>
                             <li>Select investment frequency</li>
@@ -170,30 +240,30 @@
         </section>
 
         <!-- Money Saving Tips -->
-        <section id="tips" class="mb-16">
-            <h2 class="text-3xl font-bold text-gray-800 mb-6">Smart Money Saving Tips for Students</h2>
-            <div class="grid md:grid-cols-3 gap-6">
-                <div class="bg-white rounded-lg shadow-md p-6 section-card">
-                    <h3 class="text-xl font-semibold mb-4">Daily Savings</h3>
-                    <ul class="space-y-3 text-gray-600">
+        <section id="tips" class="mb-10 md:mb-16 section-spacing">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6">Smart Money Saving Tips for Students</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                <div class="bg-white rounded-lg shadow-md p-5 md:p-6 section-card">
+                    <h3 class="text-xl font-semibold mb-3 md:mb-4">Daily Savings</h3>
+                    <ul class="space-y-2 md:space-y-3 text-gray-600">
                         <li>• Use student discounts</li>
                         <li>• Cook meals at home</li>
                         <li>• Use public transport</li>
                         <li>• Share subscriptions</li>
                     </ul>
                 </div>
-                <div class="bg-white rounded-lg shadow-md p-6 section-card">
-                    <h3 class="text-xl font-semibold mb-4">Smart Banking</h3>
-                    <ul class="space-y-3 text-gray-600">
+                <div class="bg-white rounded-lg shadow-md p-5 md:p-6 section-card">
+                    <h3 class="text-xl font-semibold mb-3 md:mb-4">Smart Banking</h3>
+                    <ul class="space-y-2 md:space-y-3 text-gray-600">
                         <li>• Zero-fee student accounts</li>
                         <li>• Automatic savings transfers</li>
                         <li>• Track expenses regularly</li>
                         <li>• Use UPI for cashbacks</li>
                     </ul>
                 </div>
-                <div class="bg-white rounded-lg shadow-md p-6 section-card">
-                    <h3 class="text-xl font-semibold mb-4">Long-term Habits</h3>
-                    <ul class="space-y-3 text-gray-600">
+                <div class="bg-white rounded-lg shadow-md p-5 md:p-6 section-card">
+                    <h3 class="text-xl font-semibold mb-3 md:mb-4">Long-term Habits</h3>
+                    <ul class="space-y-2 md:space-y-3 text-gray-600">
                         <li>• Follow 50/30/20 rule</li>
                         <li>• Create emergency fund</li>
                         <li>• Avoid impulse buying</li>
@@ -202,6 +272,15 @@
                 </div>
             </div>
         </section>
+
+        <!-- Back to top button - Mobile friendly -->
+        <div class="fixed bottom-6 right-6 z-20">
+            <a href="#" class="bg-blue-600 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg hover:bg-blue-700">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                </svg>
+            </a>
+        </div>
     </main>
 
     <script>
@@ -221,43 +300,70 @@
         });
 
         document.addEventListener('DOMContentLoaded', () => {
-        const menuBtn = document.getElementById('menuBtn');
-        const closeMenu = document.getElementById('closeMenu'); 
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('overlay');
+            const menuBtn = document.getElementById('menuBtn');
+            const closeMenu = document.getElementById('closeMenu'); 
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
 
-        menuBtn.addEventListener('click', () => {
-            sidebar.classList.add('active');
-            overlay.classList.add('active');
+            menuBtn.addEventListener('click', () => {
+                sidebar.classList.add('active');
+                overlay.classList.add('active');
+            });
+
+            const closeMenuFunction = () => {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            };
+
+            closeMenu.addEventListener('click', closeMenuFunction);
+            overlay.addEventListener('click', closeMenuFunction);
+            
+            // Smooth scrolling for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    
+                    // Close sidebar if open
+                    closeMenuFunction();
+                    
+                    // Smooth scroll to the anchor
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
         });
-
-        const closeMenuFunction = () => {
-            sidebar.classList.remove('active');
-            overlay.classList.remove('active');
-        };
-
-        closeMenu.addEventListener('click', closeMenuFunction);
-        overlay.addEventListener('click', closeMenuFunction);
-    });
-    function displayUsername() {
-    const username = localStorage.getItem('username');
-    if (username) {
-        document.getElementById('userName').textContent = username;
-        document.getElementById('userNameSidebar').textContent = username;
-        document.getElementById('userNameDisplay').textContent = `Welcome back, ${username}!`;
-        document.getElementById('userEmail').textContent = localStorage.getItem('email') || '';
-    }
-}
-function checkAuth() {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        window.location.href = 'login.html';
-    }
-}
-window.addEventListener('load', () => {
-    checkAuth();
-    displayUsername();
-});
+        
+        function displayUsername() {
+            const username = localStorage.getItem('username');
+            if (username) {
+                document.getElementById('userName').textContent = username;
+                document.getElementById('userNameSidebar').textContent = username;
+                
+                // These might not exist in this page
+                const userNameDisplay = document.getElementById('userNameDisplay');
+                if (userNameDisplay) {
+                    userNameDisplay.textContent = `Welcome back, ${username}!`;
+                }
+                
+                const userEmail = document.getElementById('userEmail');
+                if (userEmail) {
+                    userEmail.textContent = localStorage.getItem('email') || '';
+                }
+            }
+        }
+        
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+            }
+        }
+        
+        window.addEventListener('load', () => {
+            checkAuth();
+            displayUsername();
+        });
     </script>
 </body>
 </html>
