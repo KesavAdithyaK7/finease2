@@ -72,6 +72,87 @@
             0% {opacity: 0; transform: translateX(30px);}
             100% {opacity: 1; transform: translateX(0);}
         }
+        
+        /* Enhanced mobile optimizations */
+        @media (max-width: 768px) {
+            /* Better touch targets */
+            button, a {
+                min-height: 44px;
+                display: inline-flex;
+                align-items: center;
+            }
+            
+            /* Fix text sizes */
+            h1 {
+                font-size: 1.75rem !important;
+                line-height: 1.2 !important;
+            }
+            
+            h2 {
+                font-size: 1.5rem !important;
+            }
+            
+            h3 {
+                font-size: 1.25rem !important;
+            }
+            
+            /* Optimize spacing */
+            .p-6 {
+                padding: 1.25rem !important;
+            }
+            
+            /* Fix container spacing */
+            .container {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+            
+            /* Adjust grid spacing */
+            .grid {
+                gap: 1rem !important;
+            }
+            
+            /* Fix hero section sizing */
+            .pt-32 {
+                padding-top: 6rem !important;
+            }
+            
+            .pb-16 {
+                padding-bottom: 3rem !important;
+            }
+            
+            /* Adjust section spacing */
+            .py-16 {
+                padding-top: 2.5rem !important;
+                padding-bottom: 2.5rem !important;
+            }
+            
+            /* Better CTA section on mobile */
+            .flex-col.sm\:flex-row {
+                gap: 1rem;
+            }
+            
+            /* Better card hover for touch */
+            .feature-card:hover {
+                transform: translateY(-5px);
+            }
+            
+            /* Fix footer display */
+            footer .grid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            
+            /* Reduce animation distance on mobile */
+            @keyframes fadeInLeft {
+                0% {opacity: 0; transform: translateX(-15px);}
+                100% {opacity: 1; transform: translateX(0);}
+            }
+            
+            @keyframes fadeInRight {
+                0% {opacity: 0; transform: translateX(15px);}
+                100% {opacity: 1; transform: translateX(0);}
+            }
+        }
     </style>
 </head>
 <body x-data="{ isOpen: false }" class="bg-gray-50 font-sans">

@@ -159,12 +159,40 @@
                 padding: 1rem;
             }
             
+            /* Fix sidebar width on mobile */
+            .sidebar {
+                width: 85% !important;
+                max-width: 320px;
+            }
+            
+            /* Better spacing on mobile */
+            .container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            
             /* Ensure chart legend is positioned better on mobile */
             .chart-legend-container {
                 display: flex;
                 flex-wrap: wrap;
                 justify-content: center;
                 margin-top: 1rem;
+                gap: 0.5rem;
+            }
+            
+            /* More compact grid on mobile */
+            .grid {
+                gap: 0.75rem;
+            }
+            
+            /* Prevent input zoom on iOS */
+            input[type="text"],
+            input[type="number"],
+            input[type="email"],
+            input[type="password"],
+            textarea,
+            select {
+                font-size: 16px;
             }
         }
     </style>

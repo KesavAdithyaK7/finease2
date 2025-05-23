@@ -63,66 +63,37 @@
         input[type="number"] {
             transition: all 0.2s ease;
         }
-        input[type="number"]:focus {
-            border-color: #3B82F6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-        }
         
-        /* Results animation */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .fade-in {
-            animation: fadeIn 0.3s ease forwards;
-        }
-
-        /* Chart legend styles */
-        .chart-legend-container {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 1rem;
-        }
-
-        .chart-legend-btn {
-            display: flex;
-            align-items: center;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            margin: 0 0.5rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        }
-
-        .chart-legend-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .chart-legend-btn .color-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            margin-right: 0.5rem;
-        }
-
-        .chart-legend-btn.active {
-            border: 2px solid currentColor;
-        }
-
-        .contributions-btn {
-            background-color: rgba(59, 130, 246, 0.1);
-            color: #3B82F6;
-            border: 1px solid rgba(59, 130, 246, 0.3);
-        }
-
-        .interest-btn {
-            background-color: rgba(16, 185, 129, 0.1);
-            color: #10B981;
-            border: 1px solid rgba(16, 185, 129, 0.3);
+        /* Mobile-friendly improvements */
+        @media (max-width: 768px) {
+            input, select, button, a.button {
+                min-height: 44px; /* Better touch targets */
+            }
+            
+            .py-2 {
+                padding-top: 0.75rem;
+                padding-bottom: 0.75rem;
+            }
+            
+            .px-4 {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            
+            .text-sm {
+                font-size: 0.9rem;
+            }
+            
+            /* Improve spacing on mobile */
+            .container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            
+            /* Fix sidebar width on mobile */
+            .sidebar {
+                width: 85% !important;
+            }
         }
     </style>
 </head>

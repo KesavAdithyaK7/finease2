@@ -64,6 +64,75 @@
             50% {transform: translateY(10px);}
             100% {transform: translateY(0);}
         }
+        
+        /* Enhanced mobile optimizations */
+        @media (max-width: 768px) {
+            /* Better touch targets */
+            button, a {
+                min-height: 44px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            /* Optimize landing page content */
+            .h-screen {
+                min-height: 100vh; /* Ensure full height on iOS */
+            }
+            
+            /* Fix text sizes */
+            h1 {
+                font-size: 2rem !important;
+                line-height: 1.2 !important;
+            }
+            
+            h2 {
+                font-size: 1.5rem !important;
+            }
+            
+            h3 {
+                font-size: 1.25rem !important;
+            }
+            
+            /* Adjust feature cards */
+            .feature-card {
+                padding: 1.25rem !important;
+            }
+            
+            /* Fix container spacing */
+            .container {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+            
+            /* Adjust section spacing */
+            .py-20 {
+                padding-top: 3rem !important;
+                padding-bottom: 3rem !important;
+            }
+            
+            /* Fix card hover for touch */
+            .feature-card:hover {
+                transform: translateY(-5px);
+            }
+            
+            /* Optimize hero section */
+            .animated-gradient {
+                padding-top: 6rem;
+                padding-bottom: 5rem;
+            }
+            
+            /* Ensure buttons are touch-friendly */
+            .px-4.py-2 {
+                padding: 0.75rem 1rem !important;
+            }
+            
+            /* Fix image sizing */
+            img {
+                max-width: 100%;
+                height: auto;
+            }
+        }
     </style>
 </head>
 <body x-data="{ isOpen: false }" class="bg-gray-50 font-sans">

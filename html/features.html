@@ -57,20 +57,30 @@
             50% {background-position: 100% 50%;}
             100% {background-position: 0% 50%;}
         }
+        
+        /* Enhance horizontal scrolling for mobile */
         .horizontal-scrollable {
             overflow-x: auto;
             white-space: nowrap;
             -webkit-overflow-scrolling: touch;
             scroll-snap-type: x mandatory;
             scrollbar-width: none;
+            padding-bottom: 8px; /* Space for scrolling */
+            margin: 0 -1rem; /* Negative margin to expand to screen edge */
+            padding-left: 1rem;
+            padding-right: 1rem;
         }
+        
         .horizontal-scrollable::-webkit-scrollbar {
             display: none;
         }
+        
         .scroll-item {
             scroll-snap-align: center;
             display: inline-block;
+            min-height: 44px; /* Better touch target */
         }
+        
         .pop-in {
             animation: popIn 0.5s cubic-bezier(0.26, 0.53, 0.74, 1.48) forwards;
             opacity: 0; /* Start with opacity 0 */
@@ -85,6 +95,71 @@
                 opacity: 1; 
                 transform: scale(1);
                 /* Ensure the final state stays at full opacity */
+            }
+        }
+        
+        /* Enhanced mobile optimizations */
+        @media (max-width: 768px) {
+            /* Better touch targets */
+            button, a, .quick-nav-item {
+                min-height: 44px;
+                display: inline-flex;
+                align-items: center;
+            }
+            
+            /* Fix text sizes */
+            h1 {
+                font-size: 1.75rem !important;
+                line-height: 1.2 !important;
+            }
+            
+            h2 {
+                font-size: 1.5rem !important;
+            }
+            
+            h3 {
+                font-size: 1.25rem !important;
+            }
+            
+            /* Optimize feature sections for mobile */
+            .pt-16 {
+                padding-top: 4rem !important; /* Adjust for fixed header */
+            }
+            
+            .mb-20 {
+                margin-bottom: 3rem !important;
+            }
+            
+            /* Fix container spacing */
+            .container {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+            
+            /* Better spacing for cards */
+            .p-5, .p-6 {
+                padding: 1.25rem !important;
+            }
+            
+            /* Optimize grid layout */
+            .grid {
+                gap: 1rem !important;
+            }
+            
+            /* Fix hero section sizing */
+            .animated-gradient.pt-32 {
+                padding-top: 5rem !important;
+            }
+            
+            /* More compact quick navigation */
+            .quick-nav-container .scroll-item {
+                margin-right: 0.5rem;
+            }
+            
+            /* Fix chart display */
+            canvas {
+                max-width: 100%;
+                height: auto !important;
             }
         }
     </style>

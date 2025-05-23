@@ -58,19 +58,85 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
-        /* Efficient space usage */
+        /* Enhanced mobile optimizations */
         @media (max-width: 768px) {
+            /* Better touch targets */
+            input, select, button, a.button {
+                min-height: 44px !important;
+                font-size: 16px !important; /* Prevent iOS zoom */
+            }
+            
+            /* Optimize container spacing */
             .container {
-                padding-left: 1rem;
-                padding-right: 1rem;
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
             }
             
+            /* Adjust card spacing */
             .budget-card {
-                padding: 1rem;
+                padding: 1rem !important;
             }
             
+            /* More compact grids */
             .grid {
-                gap: 1rem;
+                gap: 0.75rem !important;
+            }
+            
+            /* Fix sidebar width on mobile */
+            .sidebar {
+                width: 85% !important;
+                max-width: 320px;
+            }
+            
+            /* Better chart display */
+            .h-64 {
+                height: 220px !important;
+            }
+            
+            /* Adjust spacing for icons */
+            .svg-inline--fa {
+                width: 1em !important;
+                height: 1em !important;
+            }
+            
+            /* Better text sizing */
+            h2 {
+                font-size: 1.25rem !important;
+            }
+            
+            h3 {
+                font-size: 1.125rem !important;
+            }
+            
+            /* Better modal on mobile */
+            #categoryModal .max-w-md {
+                width: 90% !important;
+                margin: 0 auto;
+            }
+            
+            /* Make range sliders easier to use */
+            input[type="range"] {
+                height: 10px !important;
+            }
+            
+            input[type="range"]::-webkit-slider-thumb {
+                width: 22px !important;
+                height: 22px !important;
+            }
+            
+            /* Fix chart overflow */
+            canvas {
+                max-width: 100% !important;
+            }
+            
+            /* Better spacing for stat cards */
+            .stat-card {
+                padding: 0.75rem !important;
+            }
+            
+            /* Adjust modal padding */
+            .p-6 {
+                padding: 1.25rem !important;
             }
         }
 

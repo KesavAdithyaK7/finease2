@@ -59,7 +59,7 @@
             visibility: visible;
         }
         
-        /* Mobile optimizations */
+        /* Enhanced mobile optimizations */
         @media (max-width: 768px) {
             /* Quick navigation scrollable */
             .quick-nav-container {
@@ -67,11 +67,20 @@
                 -webkit-overflow-scrolling: touch;
                 scroll-snap-type: x mandatory;
                 padding-bottom: 10px;
+                margin-left: -1rem;
+                margin-right: -1rem;
+                padding-left: 1rem;
+                padding-right: 1rem;
             }
+            
             .quick-nav-item {
                 scroll-snap-align: center;
                 white-space: nowrap;
                 min-width: max-content;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 44px; /* Better touch target */
             }
             
             /* Better touch targets */
@@ -84,11 +93,14 @@
             /* Adjust spacing for mobile */
             .section-spacing {
                 margin-bottom: 2rem;
+                padding-top: 4rem; /* Extra space for fixed headers */
+                margin-top: -4rem;
             }
             
             /* Sidebar width */
             .sidebar {
                 width: 85% !important;
+                max-width: 320px;
             }
             
             /* Smaller headings */
@@ -100,6 +112,37 @@
             }
             h3 {
                 font-size: 1.25rem !important;
+            }
+            
+            /* Better grid layout on mobile */
+            .grid {
+                gap: 1rem !important;
+            }
+            
+            /* Fix back to top button placement */
+            .fixed.bottom-6.right-6 {
+                bottom: 1rem;
+                right: 1rem;
+            }
+            
+            /* Prevent input zoom on iOS */
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+            
+            /* Improve container spacing */
+            .container {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            
+            /* Adjust padding for cards */
+            .p-6 {
+                padding: 1.25rem;
+            }
+            
+            .p-5 {
+                padding: 1rem;
             }
         }
     </style>

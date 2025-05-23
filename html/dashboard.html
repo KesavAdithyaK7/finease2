@@ -78,6 +78,78 @@
             transform: translateY(-5px);
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
+
+        /* Enhanced mobile optimizations */
+        @media (max-width: 768px) {
+            /* Better touch targets */
+            button, a, input, select {
+                min-height: 44px;
+            }
+            
+            /* Fix sidebar width */
+            .sidebar {
+                width: 85% !important;
+                max-width: 320px;
+            }
+            
+            /* Adjust card spacing and size */
+            .p-6 {
+                padding: 1.25rem !important;
+            }
+            
+            .p-4 {
+                padding: 1rem !important;
+            }
+            
+            /* More compact grid */
+            .grid {
+                gap: 1rem !important;
+            }
+            
+            /* More readable font sizes */
+            h1 {
+                font-size: 1.5rem !important;
+            }
+            
+            h2 {
+                font-size: 1.25rem !important;
+            }
+            
+            h3 {
+                font-size: 1.125rem !important;
+            }
+            
+            /* Adjust container spacing */
+            .container {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+            
+            /* Prevent iOS zoom on inputs */
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+            
+            /* Fix spacing for dashboard header */
+            .mt-20 {
+                margin-top: 5rem !important;
+            }
+            
+            /* Better card hover effect for touch */
+            .feature-card:hover {
+                transform: translateY(-5px);
+            }
+            
+            /* Optimize transaction display */
+            #transactions-list .flex {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            #transactions-list .justify-between {
+                justify-content: flex-start;
+            }
+        }
     </style>
 </head>
 <body class="bg-blue-50 font-sans">
