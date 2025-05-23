@@ -9,8 +9,28 @@ const path = require('path');
 
 const app = express();
 
-// Middleware
+// ===============================
+// MIDDLEWARE
+// ===============================
 app.use(express.json());
+
+// CORS Configuration
+const corsOptions = {
+    origin: ['http://127.0.0.1:5500', 'http://localhost:5500', 'https://finease-2kj3.onrender.com'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
+
+// Serve static files
+app.use(express.static(path.join(__dirname,'html')));
+
+// ===============================
+// DATABASE MODELS
+// ===============================
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, {
@@ -29,12 +49,9 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true },
     name: { type: String, required: true },
     surveyCompleted: { type: Boolean, default: false },
-    createdAt: { type: Date, default: Date.now }
 });
 
-const User = mongoose.model('User', userSchema);
-
-//Expense schema
+// Expense schema
 const expenseTrackingSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -64,10 +81,8 @@ const expenseTrackingSchema = new mongoose.Schema({
         }
     }]
 });
-const ExpenseTracking = mongoose.model('ExpenseTracking', expenseTrackingSchema);
 
-
-//Survey Schema
+// Survey Schema
 const surveySchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -99,6 +114,8 @@ const surveySchema = new mongoose.Schema({
         default: Date.now
     }
 });
+
+// Budget Schema
 const budgetSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -125,11 +142,15 @@ const budgetSchema = new mongoose.Schema({
     }
 });
 
-
-
+// Initialize Models
+const User = mongoose.model('User', userSchema);
+const ExpenseTracking = mongoose.model('ExpenseTracking', expenseTrackingSchema);
 const Budget = mongoose.model('Budget', budgetSchema);
 const Survey = mongoose.model('Survey', surveySchema);
-// Authentication Middleware
+
+// ===============================
+// AUTHENTICATION MIDDLEWARE
+// ===============================
 const auth = async (req, res, next) => {
     try {
         const token = req.header('Authorization').replace('Bearer ', '');
@@ -147,25 +168,11 @@ const auth = async (req, res, next) => {
     }
 };
 
-const corsOptions = {
-    origin: ['http://127.0.0.1:5500', 'http://localhost:5500', 'https://finease-2kj3.onrender.com'],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    exposedHeaders: ['Content-Type', 'Authorization']
-};
+// ===============================
+// API ROUTES
+// ===============================
 
-app.use(cors(corsOptions));
-
-app.use((err, req, res, next) => {
-    console.error('Server error:', err);
-    res.status(500).json({
-        success: false,
-        error: 'Internal server error'
-    });
-});
-
-// User Routes
+// Authentication Routes
 app.post('/api/signup', async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -205,13 +212,12 @@ app.post('/api/login', async (req, res) => {
             { expiresIn: '7d' }
         );
 
-        // Include surveyCompleted status in response
         res.send({ 
             user: { 
                 id: user._id, 
                 name: user.name, 
                 email: user.email,
-                surveyCompleted: user.surveyCompleted  // Add this line
+                surveyCompleted: user.surveyCompleted
             }, 
             token 
         });
@@ -220,7 +226,90 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-//Expense routes
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok', message: 'Server is running' });
+});
+
+// Survey Routes
+app.post('/api/survey', auth, async (req, res) => {
+    try {
+        // Validate required fields
+        const requiredFields = ['ageGroup', 'incomeRange', 'savings', 'primaryGoal', 'experience'];
+        const missingFields = requiredFields.filter(field => !req.body[field]);
+        
+        if (missingFields.length > 0) {
+            return res.status(400).json({
+                error: `Missing required fields: ${missingFields.join(', ')}`
+            });
+        }
+
+        const survey = new Survey({
+            userId: req.user._id,
+            ageGroup: req.body.ageGroup,
+            incomeRange: req.body.incomeRange,
+            savings: Number(req.body.savings),
+            primaryGoal: req.body.primaryGoal,
+            experience: req.body.experience
+        });
+
+        await survey.save();
+
+        res.status(201).json({
+            success: true,
+            message: 'Survey submitted successfully'
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            error: error.message || 'Failed to save survey'
+        });
+    }
+});
+
+app.post('/api/user/survey-completed', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        user.surveyCompleted = true;
+        await user.save();
+        res.json({ message: 'Survey status updated' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Budget Routes
+app.post('/api/budget/save', auth, async (req, res) => {
+    try {
+        let budget = await Budget.findOne({ userId: req.user._id });
+        if (!budget) {
+            budget = new Budget({ userId: req.user._id, ...req.body });
+        } else {
+            budget.income = req.body.income;
+            budget.customCategories = req.body.customCategories;
+            budget.allocations = req.body.allocations;
+            budget.lastUpdated = new Date();
+        }
+        await budget.save();
+        res.json(budget);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/budget/load', auth, async (req, res) => {
+    try {
+        const budget = await Budget.findOne({ userId: req.user._id });
+        if (!budget) {
+            return res.status(404).json({ error: 'No budget found' });
+        }
+        res.json(budget);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Expense Routes
 app.post('/api/expense/start', auth, async (req, res) => {
     try {
         const expenseTracking = new ExpenseTracking({
@@ -258,108 +347,6 @@ app.post('/api/expense/add', auth, async (req, res) => {
         res.status(400).send({ error: e.message });
     }
 });
-app.post('/api/user/survey-completed', auth, async (req, res) => {
-    try {
-        const user = await User.findById(req.user._id);
-        user.surveyCompleted = true;
-        await user.save();
-        res.json({ message: 'Survey status updated' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Save survey response
-app.post('/api/survey', auth, async (req, res) => {
-    console.log('Survey endpoint hit');
-    console.log('Request headers:', req.headers);
-    console.log('Request body:', req.body);
-
-    try {
-        // Validate required fields
-        const requiredFields = ['ageGroup', 'incomeRange', 'savings', 'primaryGoal', 'experience'];
-        const missingFields = requiredFields.filter(field => !req.body[field]);
-        
-        if (missingFields.length > 0) {
-            return res.status(400).json({
-                error: `Missing required fields: ${missingFields.join(', ')}`
-            });
-        }
-
-        const survey = new Survey({
-            userId: req.user._id,
-            ageGroup: req.body.ageGroup,
-            incomeRange: req.body.incomeRange,
-            savings: Number(req.body.savings),
-            primaryGoal: req.body.primaryGoal,
-            experience: req.body.experience
-        });
-
-        await survey.save();
-
-        res.status(201).json({
-            success: true,
-            message: 'Survey submitted successfully'
-        });
-
-    } catch (error) {
-        console.error('Survey error:', error);
-        res.status(500).json({
-            error: error.message || 'Failed to save survey'
-        });
-    }
-});
-// Budget routes
-app.post('/api/budget/save', auth, async (req, res) => {
-    try {
-        let budget = await Budget.findOne({ userId: req.user._id });
-        if (!budget) {
-            budget = new Budget({ userId: req.user._id, ...req.body });
-        } else {
-            budget.income = req.body.income;
-            budget.customCategories = req.body.customCategories;
-            budget.allocations = req.body.allocations;
-            budget.lastUpdated = new Date();
-        }
-        await budget.save();
-        res.json(budget);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.get('/api/budget/load', auth, async (req, res) => {
-    try {
-        const budget = await Budget.findOne({ userId: req.user._id });
-        if (!budget) {
-            return res.status(404).json({ error: 'No budget found' });
-        }
-        res.json(budget);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Get recommendations based on similar profiles
-app.get('/api/recommendations/:id', async (req, res) => {
-    try {
-        const userSurvey = await Survey.findById(req.params.id);
-        
-        // Find similar profiles
-        const similarProfiles = await Survey.find({
-            ageGroup: userSurvey.ageGroup,
-            incomeRange: userSurvey.incomeRange,
-            savings: { $gte: userSurvey.savings - 10, $lte: userSurvey.savings + 10 }
-        }).limit(10);
-
-        // Generate recommendations
-        const recommendations = generateRecommendations(userSurvey, similarProfiles);
-        
-        res.json(recommendations);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
 
 app.get('/api/expense/current', auth, async (req, res) => {
     try {
@@ -385,6 +372,30 @@ app.delete('/api/expense/finish', auth, async (req, res) => {
     }
 });
 
+// Recommendation Routes
+app.get('/api/recommendations/:id', async (req, res) => {
+    try {
+        const userSurvey = await Survey.findById(req.params.id);
+        
+        // Find similar profiles
+        const similarProfiles = await Survey.find({
+            ageGroup: userSurvey.ageGroup,
+            incomeRange: userSurvey.incomeRange,
+            savings: { $gte: userSurvey.savings - 10, $lte: userSurvey.savings + 10 }
+        }).limit(10);
+
+        // Generate recommendations
+        const recommendations = generateRecommendations(userSurvey, similarProfiles);
+        
+        res.json(recommendations);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ===============================
+// HELPER FUNCTIONS
+// ===============================
 function generateRecommendations(userSurvey, similarProfiles) {
     // Calculate average savings
     const avgSavings = similarProfiles.reduce((sum, profile) => sum + profile.savings, 0) / similarProfiles.length;
@@ -424,30 +435,37 @@ function generateRecommendations(userSurvey, similarProfiles) {
         recommendations.suggestions.push('Consider increasing your savings rate to match peers in your income group');
     }
 
-    if (userSurvey.goals === 'emergency') {
+    // Fixed: Changed userSurvey.goals to userSurvey.primaryGoal to match schema
+    if (userSurvey.primaryGoal === 'emergency') {
         recommendations.suggestions.push('Aim to save 6 months of expenses for emergency fund');
     }
 
     return recommendations;
 }
 
-// Error handling middleware
+// ===============================
+// ERROR HANDLING
+// ===============================
 app.use((err, req, res, next) => {
-    console.error(err);
-    res.status(err.status || 500).send({
-        error: err.message || 'Something went wrong!'
+    console.error('Server error:', err);
+    res.status(500).json({
+        success: false,
+        error: 'Internal server error'
     });
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
-// Serve static files
-app.use(express.static(path.join(__dirname,'html')));
-
+// ===============================
+// SERVE FRONTEND
+// ===============================
 // Serve index.html for any request that doesn't match an API route
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'html', 'index.html'));
+});
+
+// ===============================
+// START SERVER
+// ===============================
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });

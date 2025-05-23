@@ -17,8 +17,8 @@
                     colors: {
                         blue: {
                             100: '#EBF5FF',
-                            600: '#3B82F6',
-                            700: '#2563EB'
+                            600: '#2563EB',
+                            700: '#1D4ED8'
                         }
                     }
                 }
@@ -115,9 +115,12 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
-                    <h1 class="text-xl md:text-2xl font-bold text-white ml-3">[PAGE_TITLE]</h1>
+                    <h1 class="text-xl md:text-2xl font-bold text-white ml-3">Learning Hub</h1>
                 </div>
                 <div class="flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="white" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
                     <span id="userName" class="text-white mr-4 hidden md:inline"></span>
                     <button onclick="logout()" class="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-red-500 hover:scale-105 transition-transform hover:shadow-lg">
                         Logout
@@ -296,18 +299,34 @@
     <script>
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
-                localStorage.removeItem('token');
+                sessionStorage.removeItem('userSession');
                 window.location.href = 'login.html';
             }
         }
 
         // Check authentication on page load
-        window.addEventListener('load', () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
+        function checkAuth() {
+            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+            if (!sessionData.token) {
                 window.location.href = 'login.html';
             }
-        });
+        }
+
+        function displayUsername() {
+            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+            const username = sessionData.username || 'User';
+            const email = sessionData.email || '';
+            
+            // Update username elements
+            document.getElementById('userName').textContent = username;
+            document.getElementById('userNameSidebar').textContent = username;
+            
+            // Update title to fix [PAGE_TITLE] placeholder
+            const navTitle = document.querySelector('nav h1');
+            if (navTitle.textContent === '[PAGE_TITLE]') {
+                navTitle.textContent = 'Learning Hub';
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             const menuBtn = document.getElementById('menuBtn');
@@ -328,8 +347,20 @@
             closeMenu.addEventListener('click', closeMenuFunction);
             overlay.addEventListener('click', closeMenuFunction);
             
+            // Fix back-to-top button functionality
+            const backToTopButton = document.querySelector('a[href="#"]');
+            backToTopButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+            
             // Smooth scrolling for anchor links
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                if (anchor.getAttribute('href') === '#') return; // Skip back-to-top button
+                
                 anchor.addEventListener('click', function (e) {
                     e.preventDefault();
                     
@@ -337,40 +368,18 @@
                     closeMenuFunction();
                     
                     // Smooth scroll to the anchor
-                    document.querySelector(this.getAttribute('href')).scrollIntoView({
-                        behavior: 'smooth'
-                    });
+                    const targetId = this.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    
+                    if (targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                    }
                 });
             });
-        });
-        
-        function displayUsername() {
-            const username = localStorage.getItem('username');
-            if (username) {
-                document.getElementById('userName').textContent = username;
-                document.getElementById('userNameSidebar').textContent = username;
-                
-                // These might not exist in this page
-                const userNameDisplay = document.getElementById('userNameDisplay');
-                if (userNameDisplay) {
-                    userNameDisplay.textContent = `Welcome back, ${username}!`;
-                }
-                
-                const userEmail = document.getElementById('userEmail');
-                if (userEmail) {
-                    userEmail.textContent = localStorage.getItem('email') || '';
-                }
-            }
-        }
-        
-        function checkAuth() {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                window.location.href = 'login.html';
-            }
-        }
-        
-        window.addEventListener('load', () => {
+            
+            // Run auth and display username
             checkAuth();
             displayUsername();
         });

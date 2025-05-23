@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>[PAGE_TITLE] | FinEase</title>
+    <title>Dashboard | FinEase</title>
     <!-- Unified Font - Inter -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -16,9 +16,12 @@
                     },
                     colors: {
                         blue: {
-                            100: '#EBF5FF',
-                            600: '#3B82F6',
-                            700: '#2563EB'
+                            50: '#F0F9FF',
+                            100: '#E0F2FE',
+                            200: '#BAE6FD', 
+                            500: '#3B82F6',
+                            600: '#2563EB',
+                            700: '#1D4ED8'
                         }
                     }
                 }
@@ -34,9 +37,50 @@
         .sidebar.active { transform: translateX(0); }
         .overlay { opacity: 0; visibility: hidden; transition: opacity 0.3s ease-in-out; }
         .overlay.active { opacity: 1; visibility: visible; }
+        
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .animated-gradient {
+            background: linear-gradient(120deg, #3B82F6, #2563EB, #4F46E5);
+            background-size: 200% 200%;
+            animation: gradientBG 5s ease infinite;
+        }
+        @keyframes gradientBG {
+            0% {background-position: 0% 50%;}
+            50% {background-position: 100% 50%;}
+            100% {background-position: 0% 50%;}
+        }
+        .pop-in {
+            animation: popIn 0.5s cubic-bezier(0.26, 0.53, 0.74, 1.48) forwards;
+            opacity: 0;
+        }
+        @keyframes popIn {
+            0% {opacity: 0; transform: scale(0.5);}
+            100% {opacity: 1; transform: scale(1);}
+        }
+        .fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+            opacity: 0;
+        }
+        @keyframes fadeIn {
+            0% {opacity: 0; transform: translateY(10px);}
+            100% {opacity: 1; transform: translateY(0);}
+        }
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
     </style>
 </head>
-<body class="bg-blue-100">
+<body class="bg-blue-50 font-sans">
     <nav class="bg-blue-600 shadow fixed w-full top-0 z-30">
         <div class="container mx-auto px-4">
             <div class="flex justify-between items-center h-16">
@@ -46,11 +90,14 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
-                    <h1 class="text-xl md:text-2xl font-bold text-white ml-3">[PAGE_TITLE]</h1>
+                    <h1 class="text-xl md:text-2xl font-bold text-white ml-3">Dashboard</h1>
                 </div>
                 <div class="flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="white" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
                     <span id="userName" class="text-white mr-4 hidden md:inline"></span>
-                    <button onclick="logout()" class="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-red-500 hover:scale-105 transition-transform hover:shadow-lg">
+                    <button onclick="logout()" class="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-red-500 hover:scale-105 transition-all focus:outline-none focus:ring-2 focus:ring-red-300">
                         Logout
                     </button>
                 </div>
@@ -68,108 +115,164 @@
             </div>
             <div class="flex justify-between items-center mb-8">
                 <h2 class="text-xl font-bold text-gray-800">Menu</h2>
-                <button id="closeMenu" class="text-gray-600 hover:text-gray-800 p-2">
+                <button id="closeMenu" class="text-gray-600 hover:text-gray-800 p-2 focus:outline-none focus:ring-2 focus:ring-blue-300 rounded-full">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                 </button>
             </div>
             <div class="space-y-4">
-                <a href="dashboard.html" class="block text-gray-600 hover:text-gray-800 py-2">Dashboard</a>
-                <a href="budget.html" class="block text-gray-600 hover:text-gray-800 py-2">Budget Planner</a>
-                <a href="sip.html" class="block text-gray-600 hover:text-gray-800 py-2">SIP Calculator</a>
-                <a href="expense.html" class="block text-gray-600 hover:text-gray-800 py-2">Expense Sheet</a>
-                <a href="ssp.html" class="block text-gray-600 hover:text-gray-800 py-2">SSP Calculator</a>
-                <a href="learn.html" class="block text-gray-600 hover:text-gray-800 py-2">Learning Hub</a>
+                <a href="dashboard.html" class="block py-2 px-4 bg-blue-100 rounded-lg text-blue-600 font-medium">Dashboard</a>
+                <a href="budget.html" class="block py-2 px-4 text-gray-600 hover:bg-gray-100 rounded-lg transition-all hover:text-blue-600">Budget Planner</a>
+                <a href="sip.html" class="block py-2 px-4 text-gray-600 hover:bg-gray-100 rounded-lg transition-all hover:text-blue-600">SIP Calculator</a>
+                <a href="expense.html" class="block py-2 px-4 text-gray-600 hover:bg-gray-100 rounded-lg transition-all hover:text-blue-600">Expense Sheet</a>
+                <a href="ssp.html" class="block py-2 px-4 text-gray-600 hover:bg-gray-100 rounded-lg transition-all hover:text-blue-600">SSP Calculator</a>
+                <a href="learn.html" class="block py-2 px-4 text-gray-600 hover:bg-gray-100 rounded-lg transition-all hover:text-blue-600">Learning Hub</a>
             </div>
         </div>
     </div>
 
-    <main class="container mx-auto px-6 py-8 mt-16">
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div class="flex items-center space-x-4">
-                <div class="bg-blue-100 p-3 rounded-full">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                    </svg>
+    <main class="container mx-auto px-6 py-8 mt-20">
+        <!-- Welcome User Card with Enhanced Design -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8 fade-in overflow-hidden">
+            <div class="flex flex-col md:flex-row items-center md:justify-between">
+                <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                    <div class="bg-blue-100 p-4 rounded-full">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800" id="userNameDisplay">Welcome back!</h2>
+                        <p class="text-gray-600" id="userEmail">Loading your email...</p>
+                    </div>
                 </div>
-                <div>
-                    <h2 class="text-xl font-semibold" id="userNameDisplay">Welcome back!</h2>
-                    <p class="text-gray-600" id="userEmail"></p>
+                <div class="bg-blue-50 px-4 py-2 rounded-lg">
+                    <p class="text-sm text-blue-600">Last login: <span id="lastLogin">Today, 09:45 AM</span></p>
                 </div>
             </div>
         </div>
 
-        <div class="grid md:grid-cols-3 gap-6 mb-6">
-            <a href="budget.html" class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300">
-                <div class="flex items-center space-x-4">
-                    <div class="bg-blue-100 p-3 rounded-full">
+        <!-- Quick Actions Cards with Enhanced Styling -->
+        <div class="mb-10 fade-in" style="animation-delay: 0.1s">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Quick Actions</h3>
+            <div class="grid md:grid-cols-3 gap-6 mb-6">
+                <a href="budget.html" class="feature-card bg-white p-6 rounded-xl shadow-md overflow-hidden relative">
+                    <div class="absolute top-0 right-0 w-16 h-16 bg-blue-100 rounded-bl-full flex items-end justify-start p-2">
                         <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                     </div>
-                    <div>
-                        <h3 class="font-semibold">Budget Planner</h3>
-                        <p class="text-sm text-gray-600">Plan your monthly budget</p>
+                    <div class="flex items-start pt-2">
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800 mb-2">Budget Planner</h3>
+                            <p class="text-gray-600 mb-4">Create and manage your monthly budget allocations.</p>
+                            <span class="inline-flex items-center text-blue-600 font-medium">
+                                Get Started
+                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </span>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
-            <a href="sip.html" class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300">
-                <div class="flex items-center space-x-4">
-                    <div class="bg-green-100 p-3 rounded-full">
+                <a href="sip.html" class="feature-card bg-white p-6 rounded-xl shadow-md overflow-hidden relative">
+                    <div class="absolute top-0 right-0 w-16 h-16 bg-green-100 rounded-bl-full flex items-end justify-start p-2">
                         <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                         </svg>
                     </div>
-                    <div>
-                        <h3 class="font-semibold">SIP Calculator</h3>
-                        <p class="text-sm text-gray-600">Calculate investment returns</p>
+                    <div class="flex items-start pt-2">
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800 mb-2">SIP Calculator</h3>
+                            <p class="text-gray-600 mb-4">Calculate potential returns on your systematic investments.</p>
+                            <span class="inline-flex items-center text-green-600 font-medium">
+                                Calculate Returns
+                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </span>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
-            <a href="expense.html" class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300">
-                <div class="flex items-center space-x-4">
-                    <div class="bg-purple-100 p-3 rounded-full">
+                <a href="expense.html" class="feature-card bg-white p-6 rounded-xl shadow-md overflow-hidden relative">
+                    <div class="absolute top-0 right-0 w-16 h-16 bg-purple-100 rounded-bl-full flex items-end justify-start p-2">
                         <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
                     </div>
-                    <div>
-                        <h3 class="font-semibold">Expense Sheet</h3>
-                        <p class="text-sm text-gray-600">Track your expenses</p>
+                    <div class="flex items-start pt-2">
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800 mb-2">Expense Sheet</h3>
+                            <p class="text-gray-600 mb-4">Track your daily expenses and analyze spending patterns.</p>
+                            <span class="inline-flex items-center text-purple-600 font-medium">
+                                Track Expenses
+                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </span>
+                        </div>
                     </div>
-                </div>
-            </a>
-
-            <a href="learn.html" class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300">
-                <div class="flex items-center space-x-4">
-                    <div class="bg-red-100 p-3 rounded-full">
+                </a>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-6">
+                <a href="learn.html" class="feature-card bg-white p-6 rounded-xl shadow-md overflow-hidden relative">
+                    <div class="absolute top-0 right-0 w-16 h-16 bg-red-100 rounded-bl-full flex items-end justify-start p-2">
                         <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                         </svg>
                     </div>
-                    <div>
-                        <h3 class="font-semibold">Learning Hub</h3>
-                        <p class="text-sm text-gray-600">Master investment basics</p>
+                    <div class="flex items-start pt-2">
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800 mb-2">Learning Hub</h3>
+                            <p class="text-gray-600 mb-4">Enhance your financial literacy with our curated resources and tutorials.</p>
+                            <span class="inline-flex items-center text-red-600 font-medium">
+                                Start Learning
+                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </span>
+                        </div>
                     </div>
-                </div>
-            </a>
+                </a>
 
-            <a href="ssp.html" class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300">
-                <div class="flex items-center space-x-4">
-                    <div class="bg-green-100 p-3 rounded-full">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <a href="ssp.html" class="feature-card bg-white p-6 rounded-xl shadow-md overflow-hidden relative">
+                    <div class="absolute top-0 right-0 w-16 h-16 bg-yellow-100 rounded-bl-full flex items-end justify-start p-2">
+                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
                         </svg>
                     </div>
-                    <div>
-                        <h3 class="font-semibold">SSP Calculator</h3>
-                        <p class="text-sm text-gray-600">Calculate your savings</p>
+                    <div class="flex items-start pt-2">
+                        <div>
+                            <h3 class="font-bold text-lg text-gray-800 mb-2">SSP Calculator</h3>
+                            <p class="text-gray-600 mb-4">Plan and optimize your small savings program for future goals.</p>
+                            <span class="inline-flex items-center text-yellow-600 font-medium">
+                                Plan Savings
+                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </span>
+                        </div>
                     </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Recent Transactions Section with Enhanced Styling -->
+        <div class="mb-10 fade-in" style="animation-delay: 0.2s" id="transactions-container">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Recent Transactions</h3>
+                <a href="expense.html" class="text-blue-600 font-medium hover:underline">View All</a>
+            </div>
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <div class="space-y-4" id="transactions-list">
+                    <!-- Transactions will be dynamically loaded here -->
+                    <!-- If no transactions, we'll show a message -->
                 </div>
-            </a>
+            </div>
         </div>
     </main>
 
@@ -194,34 +297,177 @@
             overlay.addEventListener('click', closeMenuFunction);
         });
 
+        // Update the checkAuth function in all pages to use sessionStorage
+
         function checkAuth() {
-            const token = localStorage.getItem('token');
-            if (!token) {
+            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+            if (!sessionData.token) {
                 window.location.href = 'login.html';
+                return;
+            }
+            
+            // Display user info from sessionStorage
+            displayUserInfo();
+            
+            // Try to load transactions
+            loadTransactions();
+        }
+
+        // Use sessionStorage instead of localStorage
+
+        function displayUserInfo() {
+            // Get user session data
+            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+            const username = sessionData.username || 'User';
+            const email = sessionData.email || 'No email available';
+            const lastLoginTime = sessionData.loginTime;
+            
+            // Update username elements
+            const usernameElements = document.querySelectorAll('#userName, #userNameSidebar');
+            usernameElements.forEach(element => {
+                if (element) element.textContent = username;
+            });
+            
+            // Update welcome message
+            const userNameDisplay = document.getElementById('userNameDisplay');
+            if (userNameDisplay) {
+                userNameDisplay.textContent = `Welcome back, ${username}!`;
+            }
+            
+            // Update email element
+            const userEmailElement = document.getElementById('userEmail');
+            if (userEmailElement) {
+                userEmailElement.textContent = email;
+            }
+            
+            // Update last login time if element exists
+            const lastLoginElement = document.getElementById('lastLogin');
+            if (lastLoginElement && lastLoginTime) {
+                const lastLogin = new Date(lastLoginTime);
+                const now = new Date();
+                
+                // Check if login was today
+                const isToday = lastLogin.toDateString() === now.toDateString();
+                
+                const options = { hour: 'numeric', minute: 'numeric', hour12: true };
+                const timeString = lastLogin.toLocaleTimeString('en-US', options);
+                
+                if (isToday) {
+                    lastLoginElement.textContent = `Today, ${timeString}`;
+                } else {
+                    const dateOptions = { month: 'short', day: 'numeric' };
+                    const dateString = lastLogin.toLocaleDateString('en-US', dateOptions);
+                    lastLoginElement.textContent = `${dateString}, ${timeString}`;
+                }
             }
         }
 
-        function displayUsername() {
-        const username = localStorage.getItem('username');
-    if (username) {
-        document.getElementById('userName').textContent = username;
-        document.getElementById('userNameSidebar').textContent = username;
-        document.getElementById('userNameDisplay').textContent = `Welcome back, ${username}!`;
-        document.getElementById('userEmail').textContent = localStorage.getItem('email') || '';
-    }
-}
+        function loadTransactions() {
+            // Get transactions from sessionStorage instead of localStorage
+            const transactions = JSON.parse(sessionStorage.getItem('transactions') || '[]');
+            const transactionsList = document.getElementById('transactions-list');
+            const transactionsContainer = document.getElementById('transactions-container');
+            
+            if (transactions.length === 0) {
+                // No transactions found
+                transactionsList.innerHTML = `
+                    <div class="text-center py-8">
+                        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <p class="text-gray-500">No transactions found</p>
+                        <a href="expense.html" class="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all">Add Your First Transaction</a>
+                    </div>
+                `;
+            } else {
+                // Display transactions (limit to latest 3)
+                const recentTransactions = transactions.slice(0, 3);
+                
+                let transactionsHTML = '';
+                recentTransactions.forEach((transaction, index) => {
+                    const isLast = index === recentTransactions.length - 1;
+                    const borderClass = isLast ? '' : 'border-b border-gray-100 pb-4';
+                    
+                    // Determine icon based on category
+                    let iconClass = 'text-red-600';
+                    let bgClass = 'bg-red-100';
+                    let path = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />`;
+                    
+                    if (transaction.category === 'Income') {
+                        iconClass = 'text-green-600';
+                        bgClass = 'bg-green-100';
+                        path = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />`;
+                    }
+                    
+                    // Format date
+                    const transactionDate = new Date(transaction.date);
+                    const dateString = transactionDate.toLocaleDateString('en-US', {
+                        month: 'short', 
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: 'numeric',
+                        hour12: true
+                    });
+                    
+                    // Format amount (positive or negative)
+                    const isExpense = transaction.category !== 'Income';
+                    const amountClass = isExpense ? 'text-red-600' : 'text-green-600';
+                    const amountPrefix = isExpense ? '-' : '+';
+                    
+                    // Support both 'description' and 'item' field names
+                    const description = transaction.description || transaction.item || 'Unknown';
+                    
+                    transactionsHTML += `
+                        <div class="flex items-center justify-between ${borderClass}">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full ${bgClass} flex items-center justify-center mr-4">
+                                    <svg class="w-5 h-5 ${iconClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        ${path}
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-800">${description}</p>
+                                    <p class="text-sm text-gray-500">${dateString}</p>
+                                </div>
+                            </div>
+                            <span class="font-medium ${amountClass}">${amountPrefix}₹${transaction.amount}</span>
+                        </div>
+                    `;
+                });
+                
+                transactionsList.innerHTML = transactionsHTML;
+            }
+        }
 
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
-                localStorage.removeItem('token');
+                sessionStorage.removeItem('userSession');
                 window.location.href = 'login.html';
             }
         }
 
-        window.addEventListener('load', () => {
-    checkAuth();
-    displayUsername();
-});
+        // Animation for fade-in elements on scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animationPlayState = 'running';
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.1
+        });
+
+        // Observe all fade-in elements
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.fade-in, .pop-in').forEach(el => {
+                el.style.animationPlayState = 'paused';
+                observer.observe(el);
+            });
+            
+            // Call checkAuth on page load
+            checkAuth();
+        });
     </script>
 </body>
 </html>

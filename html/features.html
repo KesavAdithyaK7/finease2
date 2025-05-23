@@ -4,10 +4,12 @@
     <!-- Standard Mobile-Optimized Header Template for FinEase -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>[PAGE_TITLE] | FinEase</title>
+    <title>Features | FinEase</title>
     <!-- Unified Font - Inter -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
     <script>
         tailwind.config = {
             theme: {
@@ -17,9 +19,12 @@
                     },
                     colors: {
                         blue: {
-                            100: '#EBF5FF',
-                            600: '#3B82F6',
-                            700: '#2563EB'
+                            50: '#F0F9FF',
+                            100: '#E0F2FE',
+                            200: '#BAE6FD',
+                            500: '#3B82F6',
+                            600: '#2563EB',
+                            700: '#1D4ED8'
                         }
                     }
                 }
@@ -28,31 +33,81 @@
     </script>
     <!-- Global styles -->
     <link rel="stylesheet" href="../css/global.css">
-    <!-- Page-specific styles -->
     <style>
-        /* Add page-specific styles here */
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .feature-icon {
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1);
+        }
+        .animated-gradient {
+            background: linear-gradient(120deg, #3B82F6, #2563EB, #4F46E5);
+            background-size: 200% 200%;
+            animation: gradientBG 5s ease infinite;
+        }
+        @keyframes gradientBG {
+            0% {background-position: 0% 50%;}
+            50% {background-position: 100% 50%;}
+            100% {background-position: 0% 50%;}
+        }
+        .horizontal-scrollable {
+            overflow-x: auto;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
+        }
+        .horizontal-scrollable::-webkit-scrollbar {
+            display: none;
+        }
+        .scroll-item {
+            scroll-snap-align: center;
+            display: inline-block;
+        }
+        .pop-in {
+            animation: popIn 0.5s cubic-bezier(0.26, 0.53, 0.74, 1.48) forwards;
+            opacity: 0; /* Start with opacity 0 */
+        }
+        
+        @keyframes popIn {
+            0% {
+                opacity: 0; 
+                transform: scale(0.5);
+            }
+            100% {
+                opacity: 1; 
+                transform: scale(1);
+                /* Ensure the final state stays at full opacity */
+            }
+        }
     </style>
 </head>
-<body class="bg-gray-50">
+<body x-data="{ isOpen: false }" class="bg-gray-50 font-sans">
     <header class="fixed w-full top-0 bg-blue-600 z-50">
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16">
-                <a href="index.html" class="text-white text-2xl font-bold">FinEase</a>
-                <nav class="hidden md:flex items-center space-x-8">
-                    <ul class="flex space-x-6">
-                        <li><a href="index.html" class="text-white hover:text-blue-200">Home</a></li>
-                        <li><a href="features.html" class="text-white hover:text-blue-200 font-semibold">Features</a></li>
-                        <li><a href="about.html" class="text-white hover:text-blue-200">About</a></li>
-                    </ul>
-                    <div class="flex space-x-4">
-                        <a href="login.html" class="px-4 py-2 rounded-lg bg-blue-700 text-white hover:bg-blue-800">Login</a>
-                        <a href="signup.html" class="px-4 py-2 rounded-lg bg-white text-blue-600 hover:bg-blue-50">Sign Up</a>
-                    </div>
-                </nav>
-            </div>
-        </div>
-    </header>
-    <button @click="isOpen = !isOpen" class="md:hidden text-white">
+                <div class="flex items-center">
+                    <a href="index.html" class="text-white text-2xl font-bold">FinEase</a>
+                    <nav class="hidden md:flex items-center ml-8">
+                        <ul class="flex space-x-6">
+                            <li><a href="index.html" class="text-white hover:text-blue-200 transition-all">Home</a></li>
+                            <li><a href="features.html" class="text-white border-b-2 border-white font-semibold">Features</a></li>
+                            <li><a href="about.html" class="text-white hover:text-blue-200 transition-all">About</a></li>
+                        </ul>
+                    </nav>
+                </div>
+                <div class="hidden md:flex space-x-4">
+                    <a href="login.html" class="px-4 py-2 rounded-lg bg-blue-700 text-white hover:bg-blue-800 transition-all">Login</a>
+                    <a href="signup.html" class="px-4 py-2 rounded-lg bg-white text-blue-600 hover:bg-blue-50 transition-all">Sign Up</a>
+                </div>
+                <button @click="isOpen = !isOpen" class="md:hidden text-white p-2">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path x-show="!isOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                         <path x-show="isOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -72,7 +127,7 @@
              x-transition:leave-end="opacity-0 transform -translate-y-2">
             <nav class="px-4 pt-2 pb-4 space-y-2">
                 <a href="index.html" class="block py-2 text-gray-700 hover:text-blue-600">Home</a>
-                <a href="features.html" class="block py-2 text-gray-700 hover:text-blue-600">Features</a>
+                <a href="features.html" class="block py-2 text-blue-600 font-semibold">Features</a>
                 <a href="about.html" class="block py-2 text-gray-700 hover:text-blue-600">About</a>
                 <div class="pt-4 space-y-2">
                     <a href="login.html" class="block w-full text-center px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Login</a>
@@ -82,248 +137,518 @@
         </div>
     </header>
 
-    <main class="container mx-auto mt-24 p-4">
-        <!-- Investment Planning Section -->
-        <section class="mb-12 bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-2xl font-semibold mb-4">Smart Investment Planning</h3>
-            <div class="flex flex-wrap -mx-2">
-                <div class="w-full md:w-1/2 px-2 mb-4">
-                    <p class="text-gray-600 mb-4">
-                        Start your investment journey with our smart recommendations and tracking tools.
-                    </p>
-                    <ul class="list-disc list-inside text-gray-600">
-                        <li>Savings accounts and CDs</li>
-                        <li>Low-cost index funds</li>
-                        <li>Micro-investing platforms</li>
-                        <li>Educational resources on investing basics</li>
-                    </ul>
+    <!-- Hero section with animated gradient -->
+    <section class="animated-gradient pt-32 pb-16 text-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl md:text-5xl font-bold mb-4">Powerful Financial Tools for Students</h1>
+                <p class="text-lg md:text-xl max-w-3xl mx-auto opacity-90">Discover how FinEase helps you manage expenses, plan budgets, and grow your savings with intelligent tools designed specifically for students.</p>
+            </div>
+            
+            <!-- Mobile Quick Navigation Icons -->
+            <div class="horizontal-scrollable md:hidden py-4 mb-4">
+                <div class="scroll-item mx-2">
+                    <a href="#budget" class="flex flex-col items-center p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        <span class="mt-1 text-sm">Budget</span>
+                    </a>
                 </div>
-                <div class="w-full md:w-1/2 px-2 mb-4">
-                    <canvas id="investmentChart" width="400" height="300"></canvas>
+                <div class="scroll-item mx-2">
+                    <a href="#investment" class="flex flex-col items-center p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                        <span class="mt-1 text-sm">Invest</span>
+                    </a>
+                </div>
+                <div class="scroll-item mx-2">
+                    <a href="#expense" class="flex flex-col items-center p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="mt-1 text-sm">Expenses</span>
+                    </a>
+                </div>
+                <div class="scroll-item mx-2">
+                    <a href="#learn" class="flex flex-col items-center p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <span class="mt-1 text-sm">Learn</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Wave separator -->
+        <div class="w-full absolute bottom-0 left-0">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" class="w-full h-auto">
+                <path fill="#f9fafb" d="M0,96L40,106.7C80,117,160,139,240,133.3C320,128,400,96,480,90.7C560,85,640,107,720,128C800,149,880,171,960,165.3C1040,160,1120,128,1200,117.3C1280,107,1360,117,1400,122.7L1440,128L1440,320L1400,320C1360,320,1280,320,1200,320C1120,320,1040,320,960,320C880,320,800,320,720,320C640,320,560,320,480,320C400,320,320,320,240,320C160,320,80,320,40,320L0,320Z"></path>
+            </svg>
+        </div>
+    </section>
+
+    <main class="container mx-auto px-4 py-10">
+        <!-- Feature tabs navigation (for desktop) -->
+        <div class="hidden md:flex justify-center mb-12">
+            <div class="inline-flex p-1 bg-gray-100 rounded-lg">
+                <a href="#budget" class="px-6 py-3 rounded-lg bg-blue-600 text-white font-medium">Budget Planner</a>
+                <a href="#investment" class="px-6 py-3 rounded-lg text-gray-700 hover:bg-gray-200 font-medium">SIP Calculator</a>
+                <a href="#expense" class="px-6 py-3 rounded-lg text-gray-700 hover:bg-gray-200 font-medium">Expense Tracker</a>
+                <a href="#learn" class="px-6 py-3 rounded-lg text-gray-700 hover:bg-gray-200 font-medium">Learning Hub</a>
+            </div>
+        </div>
+
+        <!-- Budget Planner -->
+        <section id="budget" class="mb-20 pt-16 -mt-16"> <!-- Added pt-16 -mt-16 for scroll offset -->
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="w-full md:w-1/2 pr-0 md:pr-8 mb-8 md:mb-0">
+                    <span class="inline-block bg-blue-100 text-blue-600 rounded-full px-4 py-1 text-sm font-semibold mb-4">BUDGET PLANNING</span>
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Smart Budget Allocation</h2>
+                    <p class="text-gray-600 mb-6">Create customized budgets that fit your student lifestyle. Allocate your monthly income across different spending categories and visualize where your money goes.</p>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                        <div class="flex justify-between items-center mb-1 pop-in" style="animation-delay: 0.1s">
+                            <span class="font-medium text-gray-700">Food & Groceries</span>
+                            <span class="text-blue-600 font-medium">₹3,000</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-200 rounded-full mb-4 pop-in" style="animation-delay: 0.15s">
+                            <div class="h-2 bg-blue-500 rounded-full" style="width: 30%"></div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center mb-1 pop-in" style="animation-delay: 0.2s">
+                            <span class="font-medium text-gray-700">Books & Supplies</span>
+                            <span class="text-blue-600 font-medium">₹2,500</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-200 rounded-full mb-4 pop-in" style="animation-delay: 0.25s">
+                            <div class="h-2 bg-green-500 rounded-full" style="width: 25%"></div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center mb-1 pop-in" style="animation-delay: 0.3s">
+                            <span class="font-medium text-gray-700">Transportation</span>
+                            <span class="text-blue-600 font-medium">₹1,500</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-200 rounded-full mb-4 pop-in" style="animation-delay: 0.35s">
+                            <div class="h-2 bg-yellow-500 rounded-full" style="width: 15%"></div>
+                        </div>
+                        
+                        <div class="flex justify-between items-center mb-1 pop-in" style="animation-delay: 0.4s">
+                            <span class="font-medium text-gray-700">Savings</span>
+                            <span class="text-blue-600 font-medium">₹3,000</span>
+                        </div>
+                        <div class="w-full h-2 bg-gray-200 rounded-full pop-in" style="animation-delay: 0.45s">
+                            <div class="h-2 bg-purple-500 rounded-full" style="width: 30%"></div>
+                        </div>
+                    </div>
+                    
+                    <a href="budget.html" class="inline-flex items-center bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-all">
+                        Try Budget Planner
+                        <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </a>
+                </div>
+                <div class="w-full md:w-1/2 bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <div class="relative p-6">
+                        <div class="absolute top-2 right-2 flex space-x-1">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                        <div class="mt-6">
+                            <canvas id="budgetPieChart" class="mx-auto" width="300" height="300"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
-
-        <!-- Budget Planning Section -->
-        <section class="mb-12 bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-2xl font-semibold mb-4">Interactive Budget Planner</h3>
-            <p class="text-gray-600 mb-4">
-                Adjust the sliders to see how different budget allocations affect your monthly spending plan.
-            </p>
-            
-            <div class="flex flex-wrap -mx-2">
-                <div class="w-full md:w-1/2 px-2 mb-4">
-                    <div class="space-y-6">
-                        <div>
-                            <label class="flex justify-between mb-2">
-                                <span class="font-semibold text-gray-700">Books</span>
-                                <span class="text-blue-600" id="booksPercent">25%</span>
-                            </label>
-                            <input type="range" 
-                                   class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer"
-                                   min="0" max="100" value="25"
-                                   oninput="updateBudget(this, 'booksPercent')">
+        
+        <!-- SIP Calculator -->
+        <section id="investment" class="mb-20 pt-16 -mt-16">
+            <div class="flex flex-col-reverse md:flex-row items-center">
+                <div class="w-full md:w-1/2 bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <div class="relative p-6">
+                        <div class="absolute top-2 right-2 flex space-x-1">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
                         </div>
-                        <div>
-                            <label class="flex justify-between mb-2">
-                                <span class="font-semibold text-gray-700">Food</span>
-                                <span class="text-blue-600" id="foodPercent">30%</span>
-                            </label>
-                            <input type="range" 
-                                   class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer"
-                                   min="0" max="100" value="30"
-                                   oninput="updateBudget(this, 'foodPercent')">
-                        </div>
-                        <div>
-                            <label class="flex justify-between mb-2">
-                                <span class="font-semibold text-gray-700">Transport</span>
-                                <span class="text-blue-600" id="transportPercent">15%</span>
-                            </label>
-                            <input type="range" 
-                                   class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer"
-                                   min="0" max="100" value="15"
-                                   oninput="updateBudget(this, 'transportPercent')">
-                        </div>
-                        <div>
-                            <label class="flex justify-between mb-2">
-                                <span class="font-semibold text-gray-700">Entertainment</span>
-                                <span class="text-blue-600" id="entertainmentPercent">10%</span>
-                            </label>
-                            <input type="range" 
-                                   class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer"
-                                   min="0" max="100" value="10"
-                                   oninput="updateBudget(this, 'entertainmentPercent')">
-                        </div>
-                        <div>
-                            <label class="flex justify-between mb-2">
-                                <span class="font-semibold text-gray-700">Savings</span>
-                                <span class="text-blue-600" id="savingsPercent">20%</span>
-                            </label>
-                            <input type="range" 
-                                   class="w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer"
-                                   min="0" max="100" value="20"
-                                   oninput="updateBudget(this, 'savingsPercent')">
-                        </div>
-                        <div class="mt-6 p-4 bg-blue-50 rounded-lg">
-                            <label class="block mb-2 font-semibold text-gray-700">Monthly Budget Amount (₹)</label>
-                            <input type="number" id="budgetAmount" value="10000"
-                                   class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500"
-                                   oninput="calculateBudget()">
+                        <div class="mt-6">
+                            <canvas id="sipChart" class="mx-auto" width="300" height="300"></canvas>
                         </div>
                     </div>
                 </div>
-                <div class="w-full md:w-1/2 px-2 mb-4">
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h4 class="text-lg font-semibold mb-4">Monthly Breakdown</h4>
-                        <canvas id="budgetPieChart" class="mb-4"></canvas>
-                        <div id="breakdownList" class="space-y-2 text-sm text-gray-600"></div>
+                <div class="w-full md:w-1/2 pl-0 md:pl-8 mb-8 md:mb-0">
+                    <span class="inline-block bg-green-100 text-green-600 rounded-full px-4 py-1 text-sm font-semibold mb-4">INVESTMENT PLANNING</span>
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">SIP Growth Calculator</h2>
+                    <p class="text-gray-600 mb-6">See how small investments can grow over time with our Systematic Investment Plan calculator. Start your investment journey early and watch your wealth grow.</p>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6 pop-in">
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Monthly Investment</label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">₹</span>
+                                    <input type="text" value="1,000" class="w-full pl-8 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" readonly>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Investment Period</label>
+                                <input type="text" value="15 years" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-600">Total Investment</span>
+                                <span class="font-medium">₹1,80,000</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Estimated Returns</span>
+                                <span class="font-medium text-green-600">₹3,40,000</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <a href="sip.html" class="inline-flex items-center bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition-all">
+                        Try SIP Calculator
+                        <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Expense Tracker -->
+        <section id="expense" class="mb-20 pt-16 -mt-16">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="w-full md:w-1/2 pr-0 md:pr-8 mb-8 md:mb-0">
+                    <span class="inline-block bg-yellow-100 text-yellow-600 rounded-full px-4 py-1 text-sm font-semibold mb-4">EXPENSE TRACKING</span>
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Smart Expense Monitoring</h2>
+                    <p class="text-gray-600 mb-6">Track your daily expenses, categorize spending, and identify areas where you can save. Visualize your spending patterns with intuitive charts.</p>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6 pop-in">
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">College Canteen</p>
+                                        <p class="text-xs text-gray-500">Today, 12:30 PM</p>
+                                    </div>
+                                </div>
+                                <span class="text-red-600 font-medium">-₹120</span>
+                            </div>
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Bus Pass</p>
+                                        <p class="text-xs text-gray-500">Yesterday, 9:15 AM</p>
+                                    </div>
+                                </div>
+                                <span class="text-red-600 font-medium">-₹250</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">Stipend</p>
+                                        <p class="text-xs text-gray-500">May 1, 10:00 AM</p>
+                                    </div>
+                                </div>
+                                <span class="text-green-600 font-medium">+₹5,000</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <a href="expense.html" class="inline-flex items-center bg-yellow-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-yellow-700 transition-all">
+                        Try Expense Tracker
+                        <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </a>
+                </div>
+                <div class="w-full md:w-1/2 bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <div class="relative p-6">
+                        <div class="absolute top-2 right-2 flex space-x-1">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                        <div class="mt-6">
+                            <canvas id="expenseChart" class="mx-auto" width="300" height="300"></canvas>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </section>
+        
+        <!-- Learning Hub -->
+        <section id="learn" class="mb-20 pt-16 -mt-16">
+            <div class="flex flex-col-reverse md:flex-row items-center">
+                <div class="w-full md:w-1/2 bg-white rounded-2xl shadow-xl overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1579389083395-4507e98b5e67?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Learning financial concepts" class="w-full h-auto">
+                    <div class="p-6">
+                        <h3 class="font-bold text-lg mb-2">Investment Learning Modules</h3>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full">Stock Market</span>
+                            <span class="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">SIP Investment</span>
+                            <span class="bg-purple-100 text-purple-600 text-xs px-2 py-1 rounded-full">Mutual Funds</span>
+                            <span class="bg-yellow-100 text-yellow-600 text-xs px-2 py-1 rounded-full">Risk Management</span>
+                        </div>
+                        <p class="text-gray-600 text-sm">Interactive lessons that build financial literacy and investing confidence.</p>
+                    </div>
+                </div>
+                <div class="w-full md:w-1/2 pl-0 md:pl-8 mb-8 md:mb-0">
+                    <span class="inline-block bg-purple-100 text-purple-600 rounded-full px-4 py-1 text-sm font-semibold mb-4">FINANCIAL EDUCATION</span>
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Learning Hub</h2>
+                    <p class="text-gray-600 mb-6">Build financial literacy with our educational resources. Learn investment basics, budgeting techniques, and money-saving strategies with easy-to-understand content.</p>
+                    
+                    <div class="bg-white rounded-xl shadow-lg p-6 mb-6 pop-in">
+                        <h4 class="font-semibold text-gray-800 mb-4">Most Popular Topics</h4>
+                        <ul class="space-y-3">
+                            <li class="flex items-center">
+                                <div class="bg-blue-100 w-8 h-8 rounded-full flex items-center justify-center mr-3">
+                                    <span class="text-blue-600 font-medium">1</span>
+                                </div>
+                                <span>Understanding SIP investment basics</span>
+                            </li>
+                            <li class="flex items-center">
+                                <div class="bg-blue-100 w-8 h-8 rounded-full flex items-center justify-center mr-3">
+                                    <span class="text-blue-600 font-medium">2</span>
+                                </div>
+                                <span>50/30/20 budgeting rule for students</span>
+                            </li>
+                            <li class="flex items-center">
+                                <div class="bg-blue-100 w-8 h-8 rounded-full flex items-center justify-center mr-3">
+                                    <span class="text-blue-600 font-medium">3</span>
+                                </div>
+                                <span>Creating an emergency fund on campus</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <a href="learn.html" class="inline-flex items-center bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition-all">
+                        Explore Learning Hub
+                        <svg class="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Call to action -->
+        <section class="bg-blue-600 rounded-2xl p-8 md:p-12 text-center text-white">
+            <h2 class="text-3xl md:text-4xl font-bold mb-4">Ready to take control of your finances?</h2>
+            <p class="text-lg md:text-xl opacity-90 max-w-2xl mx-auto mb-8">Join thousands of students who are already using FinEase to build a secure financial future.</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                <a href="signup.html" class="px-8 py-4 rounded-lg bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all">Create Free Account</a>
+                <a href="login.html" class="px-8 py-4 rounded-lg bg-blue-700 text-white font-bold hover:bg-blue-800 transition-all">Login</a>
             </div>
         </section>
     </main>
 
     <script>
-        // Investment Chart
-        const investmentCtx = document.getElementById("investmentChart").getContext("2d");
-        new Chart(investmentCtx, {
-            type: "line",
+        // Budget Pie Chart
+        const budgetCtx = document.getElementById('budgetPieChart').getContext('2d');
+        new Chart(budgetCtx, {
+            type: 'doughnut',
             data: {
-                labels: ["Year 1", "Year 2", "Year 3", "Year 4", "Year 5"],
+                labels: ['Food & Groceries', 'Books & Supplies', 'Transportation', 'Savings'],
                 datasets: [{
-                    label: "Investment Growth",
-                    data: [1000, 1150, 1322, 1521, 1749],
-                    borderColor: "rgb(75, 192, 192)",
-                    tension: 0.1,
-                }],
+                    data: [30, 25, 15, 30],
+                    backgroundColor: [
+                        '#3B82F6',
+                        '#10B981',
+                        '#F59E0B',
+                        '#8B5CF6'
+                    ],
+                    borderWidth: 0
+                }]
             },
             options: {
                 responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20
+                        }
                     },
-                },
-            },
-        });
-
-        // Budget Chart and Calculations
-        let budgetChart;
-const MAX_TOTAL_PERCENTAGE = 100;
-
-function validateBudgetAllocation() {
-    const percentages = {
-        'Books': parseFloat(document.getElementById('booksPercent').textContent),
-        'Food': parseFloat(document.getElementById('foodPercent').textContent),
-        'Transport': parseFloat(document.getElementById('transportPercent').textContent),
-        'Entertainment': parseFloat(document.getElementById('entertainmentPercent').textContent),
-        'Savings': parseFloat(document.getElementById('savingsPercent').textContent)
-    };
-
-    const total = Object.values(percentages).reduce((sum, value) => sum + parseFloat(value), 0);
-    return {
-        isValid: total <= MAX_TOTAL_PERCENTAGE,
-        total: total
-    };
-}
-
-function updateBudget(slider, id) {
-    const currentValue = parseInt(slider.value);
-    const validation = validateBudgetAllocation();
-    
-    if (validation.total > MAX_TOTAL_PERCENTAGE) {
-        slider.value = Math.max(0, currentValue - (validation.total - MAX_TOTAL_PERCENTAGE));
-        document.getElementById(id).textContent = `${slider.value}%`;
-        document.getElementById(id).classList.add('text-red-600');
-    } else {
-        document.getElementById(id).textContent = `${currentValue}%`;
-        document.getElementById(id).classList.remove('text-red-600');
-    }
-    calculateBudget();
-}
-
-function calculateBudget() {
-    const amount = parseFloat(document.getElementById('budgetAmount').value) || 0;
-    const percentages = {
-        'Books': parseFloat(document.getElementById('booksPercent').textContent),
-        'Food': parseFloat(document.getElementById('foodPercent').textContent),
-        'Transport': parseFloat(document.getElementById('transportPercent').textContent),
-        'Entertainment': parseFloat(document.getElementById('entertainmentPercent').textContent),
-        'Savings': parseFloat(document.getElementById('savingsPercent').textContent)
-    };
-
-    const validation = validateBudgetAllocation();
-    if (!validation.isValid) {
-        showError(`Total allocation (${validation.total}%) exceeds 100%`);
-        return;
-    }
-
-    const breakdown = Object.entries(percentages).map(([category, percent]) => ({
-        category,
-        amount: (amount * (parseFloat(percent) / 100)).toFixed(2)
-    }));
-
-    updateChart(breakdown);
-    updateBreakdownList(breakdown);
-}
-
-function showError(message) {
-    const errorDiv = document.getElementById('budgetError') || createErrorElement();
-    errorDiv.textContent = message;
-    errorDiv.classList.remove('hidden');
-    setTimeout(() => errorDiv.classList.add('hidden'), 3000);
-}
-
-function createErrorElement() {
-    const errorDiv = document.createElement('div');
-    errorDiv.id = 'budgetError';
-    errorDiv.className = 'bg-red-100 text-red-600 p-2 rounded-lg mb-4 hidden';
-    document.querySelector('.space-y-6').prepend(errorDiv);
-    return errorDiv;
-}
-
-function updateChart(breakdown) {
-    const ctx = document.getElementById('budgetPieChart').getContext('2d');
-    
-    if (budgetChart) {
-        budgetChart.destroy();
-    }
-
-    budgetChart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: breakdown.map(item => item.category),
-            datasets: [{
-                data: breakdown.map(item => item.amount),
-                backgroundColor: [
-                    '#60A5FA',
-                    '#34D399',
-                    '#FBBF24',
-                    '#F87171',
-                    '#A78BFA'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                },
-                tooltip: {
-                    callbacks: {
-                        label: (context) => {
-                            const value = context.raw;
-                            const total = context.dataset.data.reduce((sum, val) => sum + parseFloat(val), 0);
-                            const percentage = ((value / total) * 100).toFixed(1);
-                            return `₹${value} (${percentage}%)`;
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.label}: ₹${context.raw * 100}`;
+                            }
                         }
                     }
                 }
             }
-        }
+        });
+
+        // SIP Growth Chart
+        const sipCtx = document.getElementById('sipChart').getContext('2d');
+        new Chart(sipCtx, {
+            type: 'line',
+            data: {
+                labels: ['Year 1', 'Year 3', 'Year 5', 'Year 10', 'Year 15'],
+                datasets: [
+                    {
+                        label: 'Invested Amount',
+                        data: [12000, 36000, 60000, 120000, 180000],
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true
+                    },
+                    {
+                        label: 'Expected Returns',
+                        data: [12600, 43000, 80000, 210000, 340000],
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                tension: 0.3,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ₹${context.raw.toLocaleString()}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '₹' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Expense Chart
+        const expenseCtx = document.getElementById('expenseChart').getContext('2d');
+        new Chart(expenseCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Food', 'Transport', 'Books', 'Entertainment', 'Utilities'],
+                datasets: [{
+                    label: 'Monthly Expenses',
+                    data: [3000, 1500, 2500, 1000, 800],
+                    backgroundColor: [
+                        '#3B82F6',
+                        '#F59E0B',
+                        '#10B981',
+                        '#EC4899',
+                        '#8B5CF6'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `₹${context.raw}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '₹' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Smooth scrolling for anchor links - updated to account for header height
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                const headerOffset = 80;
+                const elementPosition = target.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
+                
+                // Close mobile menu if open
+                if (window.innerWidth < 768) {
+                    document.querySelector('[x-data]').__x.$data.isOpen = false;
+                }
+            });
+        });
+
+        // Intersection Observer for pop-in animations
+        document.addEventListener('DOMContentLoaded', function() {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                // Find all pop-in elements in this section and reset their animation
+                entry.target.querySelectorAll('.pop-in').forEach(el => {
+                    el.style.animation = 'none';
+                    setTimeout(() => {
+                        el.style.animation = '';
+                    }, 10);
+                });
+            }
+        });
+    }, {
+        threshold: 0.1,
+        rootMargin: '-50px'
     });
-}
+    
+    // Observe each feature section
+    document.querySelectorAll('section[id]').forEach(section => {
+        observer.observe(section);
+    });
+});
     </script>
 </body>
 </html>

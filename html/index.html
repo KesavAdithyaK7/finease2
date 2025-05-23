@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>[PAGE_TITLE] | FinEase</title>
+    <title>FinEase | Smart Financial Planning for Students</title>
     <!-- Unified Font - Inter -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
     <script>
         tailwind.config = {
             theme: {
@@ -16,9 +17,12 @@
                     },
                     colors: {
                         blue: {
-                            100: '#EBF5FF',
-                            600: '#3B82F6',
-                            700: '#2563EB'
+                            50: '#F0F9FF',
+                            100: '#E0F2FE',
+                            200: '#BAE6FD',
+                            500: '#3B82F6',
+                            600: '#2563EB',
+                            700: '#1D4ED8'
                         }
                     }
                 }
@@ -27,53 +31,60 @@
     </script>
     <!-- Global styles -->
     <link rel="stylesheet" href="../css/global.css">
-    <!-- Page-specific styles -->
     <style>
-        /* Add page-specific styles here */
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .animated-gradient {
+            background: linear-gradient(120deg, #3B82F6, #2563EB, #4F46E5);
+            background-size: 200% 200%;
+            animation: gradientBG 5s ease infinite;
+        }
+        @keyframes gradientBG {
+            0% {background-position: 0% 50%;}
+            50% {background-position: 100% 50%;}
+            100% {background-position: 0% 50%;}
+        }
+        .pop-in {
+            animation: popIn 0.5s cubic-bezier(0.26, 0.53, 0.74, 1.48);
+        }
+        @keyframes popIn {
+            0% {opacity: 0; transform: scale(0.5);}
+            100% {opacity: 1; transform: scale(1);}
+        }
+        .scroll-down {
+            animation: scrollDown 2s ease-in-out infinite;
+        }
+        @keyframes scrollDown {
+            0% {transform: translateY(0);}
+            50% {transform: translateY(10px);}
+            100% {transform: translateY(0);}
+        }
     </style>
 </head>
-<body x-data="{ isOpen: false }" class="bg-gray-50">
-    <nav class="bg-blue-600 shadow fixed w-full top-0 z-30">
-        <div class="container mx-auto px-4">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                    <button id="menuBtn" class="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-all">
-                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
-                    <h1 class="text-xl md:text-2xl font-bold text-white ml-3">[PAGE_TITLE]</h1>
-                </div>
-                <div class="flex items-center">
-                    <span id="userName" class="text-white mr-4 hidden md:inline"></span>
-                    <button onclick="logout()" class="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-red-500 hover:scale-105 transition-transform hover:shadow-lg">
-                        Logout
-                    </button>
-                </div>
-            </div>
-        </div>
-    </nav>
-
+<body x-data="{ isOpen: false }" class="bg-gray-50 font-sans">
     <header class="fixed w-full top-0 bg-blue-600 z-50">
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-16">
-                <a href="index.html" class="text-white text-2xl font-bold">FinEase</a>
-                
-                <!-- Desktop Navigation -->
-                <nav class="hidden md:flex items-center space-x-8">
-                    <ul class="flex space-x-6">
-                        <li><a href="index.html" class="text-white hover:text-blue-200">Home</a></li>
-                        <li><a href="features.html" class="text-white hover:text-blue-200">Features</a></li>
-                        <li><a href="about.html" class="text-white hover:text-blue-200">About</a></li>
-                    </ul>
-                    <div class="flex space-x-4">
-                        <a href="login.html" class="px-4 py-2 rounded-lg bg-blue-700 text-white hover:bg-blue-800">Login</a>
-                        <a href="signup.html" class="px-4 py-2 rounded-lg bg-white text-blue-600 hover:bg-blue-50">Sign Up</a>
-                    </div>
-                </nav>
-
-                <!-- Mobile Menu Button -->
-                <button @click="isOpen = !isOpen" class="md:hidden text-white">
+                <div class="flex items-center">
+                    <a href="index.html" class="text-white text-2xl font-bold">FinEase</a>
+                    <nav class="hidden md:flex items-center ml-8">
+                        <ul class="flex space-x-6">
+                            <li><a href="index.html" class="text-white border-b-2 border-white font-semibold">Home</a></li>
+                            <li><a href="features.html" class="text-white hover:text-blue-200 transition-all">Features</a></li>
+                            <li><a href="about.html" class="text-white hover:text-blue-200 transition-all">About</a></li>
+                        </ul>
+                    </nav>
+                </div>
+                <div class="hidden md:flex space-x-4">
+                    <a href="login.html" class="px-4 py-2 rounded-lg bg-blue-700 text-white hover:bg-blue-800 transition-all">Login</a>
+                    <a href="signup.html" class="px-4 py-2 rounded-lg bg-white text-blue-600 hover:bg-blue-50 transition-all">Sign Up</a>
+                </div>
+                <button @click="isOpen = !isOpen" class="md:hidden text-white p-2">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path x-show="!isOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                         <path x-show="isOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -92,7 +103,7 @@
              x-transition:leave-start="opacity-100 transform translate-y-0"
              x-transition:leave-end="opacity-0 transform -translate-y-2">
             <nav class="px-4 pt-2 pb-4 space-y-2">
-                <a href="index.html" class="block py-2 text-gray-700 hover:text-blue-600">Home</a>
+                <a href="index.html" class="block py-2 text-blue-600 font-semibold">Home</a>
                 <a href="features.html" class="block py-2 text-gray-700 hover:text-blue-600">Features</a>
                 <a href="about.html" class="block py-2 text-gray-700 hover:text-blue-600">About</a>
                 <div class="pt-4 space-y-2">
@@ -103,34 +114,306 @@
         </div>
     </header>
 
-    <main class="container mx-auto mt-24 p-4">
-        <!-- Your existing main content here -->
-        <section class="text-center mb-16">
-            <h1 class="text-5xl font-bold text-gray-800 mb-6">Smart Financial Planning for Students</h1>
-            <p class="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-                Take control of your finances with FinEase - the all-in-one platform designed specifically for students to track expenses, set budgets, and make informed financial decisions.
-            </p>
-            <div class="flex flex-col sm:flex-row justify-center gap-4">
-                <a href="signup.html" class="px-8 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors">Get Started</a>
-                <a href="features.html" class="px-8 py-3 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">Learn More</a>
+    <!-- Hero Section with Animated Background -->
+    <section class="animated-gradient h-screen flex items-center relative">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="w-full md:w-1/2 text-white mb-10 md:mb-0">
+                    <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">Smart Financial Planning for Students</h1>
+                    <p class="text-lg md:text-xl mb-8 opacity-90">Take control of your finances with FinEase - the all-in-one platform designed specifically for students to track expenses, set budgets, and make informed financial decisions.</p>
+                </div>
+                <div class="w-full md:w-1/2 flex justify-center">
+                    <div class="relative">
+                        <!-- Mobile mockup with app screenshot -->
+                        <div class="bg-white rounded-3xl shadow-2xl p-3 rotate-3 transform hover:rotate-0 transition-all">
+                            <div class="rounded-2xl overflow-hidden border-8 border-gray-800">
+                                <img src="https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-1.2.1&auto=format&fit=crop&w=350&q=80" alt="FinEase App" class="w-full h-auto">
+                            </div>
+                            <div class="absolute -bottom-6 -left-6 bg-blue-100 text-blue-800 rounded-full p-4 shadow-lg pop-in">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <div class="absolute -top-5 -right-5 bg-green-100 text-green-800 rounded-full p-3 shadow-lg pop-in" style="animation-delay: 0.2s">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </section>
+        </div>
+        <!-- Wave separator -->
+        <div class="absolute bottom-0 left-0 w-full">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" class="w-full h-auto">
+                <path fill="#f9fafb" d="M0,96L40,106.7C80,117,160,139,240,133.3C320,128,400,96,480,90.7C560,85,640,107,720,128C800,149,880,171,960,165.3C1040,160,1120,128,1200,117.3C1280,107,1360,117,1400,122.7L1440,128L1440,320L1400,320C1360,320,1280,320,1200,320C1120,320,1040,320,960,320C880,320,800,320,720,320C640,320,560,320,480,320C400,320,320,320,240,320C160,320,80,320,40,320L0,320Z"></path>
+            </svg>
+        </div>
+    </section>
 
-        <section class="grid md:grid-cols-3 gap-8">
-            <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                <h3 class="text-2xl font-semibold text-gray-800 mb-4">Expense Tracking</h3>
-                <p class="text-gray-600">Track your expenses and get insights into your spending habits.</p>
+    <!-- Feature Cards -->
+    <section class="py-20 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Why Students Love FinEase</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">Our app is specifically designed for the unique financial challenges students face daily.</p>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                <h3 class="text-2xl font-semibold text-gray-800 mb-4">Budgeting</h3>
-                <p class="text-gray-600">Set monthly budgets and get notified when you're close to exceeding them.</p>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Feature Card 1 -->
+                <div class="feature-card bg-white rounded-xl shadow-lg p-6 text-center">
+                    <div class="w-16 h-16 mx-auto mb-6 bg-blue-100 rounded-full flex items-center justify-center">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Expense Tracking</h3>
+                    <p class="text-gray-600 mb-4">Easily log daily expenses and categorize them to understand where your money goes.</p>
+                    <a href="features.html#expense" class="text-blue-600 font-medium inline-flex items-center">
+                        Learn more
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                    </a>
+                </div>
+                
+                <!-- Feature Card 2 -->
+                <div class="feature-card bg-white rounded-xl shadow-lg p-6 text-center">
+                    <div class="w-16 h-16 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
+                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Budget Planning</h3>
+                    <p class="text-gray-600 mb-4">Create personalized budgets that reflect your student lifestyle and financial goals.</p>
+                    <a href="features.html#budget" class="text-green-600 font-medium inline-flex items-center">
+                        Learn more
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                    </a>
+                </div>
+                
+                <!-- Feature Card 3 -->
+                <div class="feature-card bg-white rounded-xl shadow-lg p-6 text-center">
+                    <div class="w-16 h-16 mx-auto mb-6 bg-purple-100 rounded-full flex items-center justify-center">
+                        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Financial Education</h3>
+                    <p class="text-gray-600 mb-4">Access learning resources designed to improve your financial literacy and decision-making.</p>
+                    <a href="features.html#learn" class="text-purple-600 font-medium inline-flex items-center">
+                        Learn more
+                        <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                    </a>
+                </div>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-                <h3 class="text-2xl font-semibold text-gray-800 mb-4">Financial Reports</h3>
-                <p class="text-gray-600">Generate detailed financial reports to understand your spending patterns.</p>
+        </div>
+    </section>
+    
+    <!-- Testimonials Section -->
+    <section class="py-20 bg-blue-50">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">What Students Say</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">Hear from students who have transformed their financial habits with FinEase.</p>
             </div>
-        </section>
-    </main>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Testimonial 1 -->
+                <div class="bg-white rounded-xl shadow-md p-6 border-t-4 border-blue-500">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+                            <span class="text-blue-600 font-semibold">RK</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">Rahul K</h4>
+                            <p class="text-sm text-gray-500">Engineering Student</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600">"FinEase helped me track my daily campus expenses and save enough for my semester projects. The budgeting feature is a game-changer!"</p>
+                    <div class="mt-4 flex text-yellow-400">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                    </div>
+                </div>
+                
+                <!-- Testimonial 2 -->
+                <div class="bg-white rounded-xl shadow-md p-6 border-t-4 border-green-500">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mr-4">
+                            <span class="text-green-600 font-semibold">PS</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">Priya S</h4>
+                            <p class="text-sm text-gray-500">Commerce Student</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600">"The investment calculator helped me understand how starting small SIPs during college can lead to significant wealth. Now I invest a small portion of my pocket money."</p>
+                    <div class="mt-4 flex text-yellow-400">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                    </div>
+                </div>
+                
+                <!-- Testimonial 3 -->
+                <div class="bg-white rounded-xl shadow-md p-6 border-t-4 border-purple-500">
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center mr-4">
+                            <span class="text-purple-600 font-semibold">AJ</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800">Arjun J</h4>
+                            <p class="text-sm text-gray-500">Arts Student</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600">"The Learning Hub sections helped me understand financial concepts I never learned in class. The 50/30/20 rule changed how I manage my stipend."</p>
+                    <div class="mt-4 flex text-yellow-400">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Call to action with bulletproof buttons -->
+    <section class="bg-blue-600 py-16">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold text-white mb-6">Ready to take control of your finances?</h2>
+            <p class="text-xl text-white opacity-90 max-w-2xl mx-auto mb-8">Join thousands of students who are already using FinEase to build a secure financial future.</p>
+            <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+                <!-- Direct link styled as button -->
+                <a href="signup.html" 
+                   onclick="window.location.href='signup.html'; return false;"
+                   class="no-underline px-8 py-4 rounded-lg bg-white text-blue-600 font-bold hover:bg-blue-50 transition-all text-center inline-block focus:outline-none focus:ring-2 focus:ring-blue-300 cursor-pointer">
+                    Create Free Account
+                </a>
+                
+                <!-- Direct link styled as button -->
+                <a href="features.html"
+                   onclick="window.location.href='features.html'; return false;"
+                   class="no-underline px-8 py-4 rounded-lg bg-blue-700 text-white font-bold hover:bg-blue-800 transition-all border border-white text-center inline-block focus:outline-none focus:ring-2 focus:ring-white/50 cursor-pointer">
+                    Explore Features
+                </a>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">FinEase</h3>
+                    <p class="text-gray-400">Smart financial planning for students.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Features</h4>
+                    <ul class="space-y-2">
+                        <li><a href="features.html#budget" class="text-gray-400 hover:text-white">Budget Planner</a></li>
+                        <li><a href="features.html#expense" class="text-gray-400 hover:text-white">Expense Tracker</a></li>
+                        <li><a href="features.html#investment" class="text-gray-400 hover:text-white">SIP Calculator</a></li>
+                        <li><a href="features.html#learn" class="text-gray-400 hover:text-white">Learning Hub</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Company</h4>
+                    <ul class="space-y-2">
+                        <li><a href="about.html" class="text-gray-400 hover:text-white">About Us</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Contact</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Privacy Policy</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Connect</h4>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"></path>
+                            </svg>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"></path>
+                            </svg>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"></path>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 pt-8 border-t border-gray-700 text-center text-gray-400">
+                <p>&copy; 2024 FinEase. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+    // Fix button behavior
+    document.addEventListener('DOMContentLoaded', function() {
+        // Find all link-buttons and enhance them
+        document.querySelectorAll('a[role="button"]').forEach(button => {
+            // Add click handler
+            button.addEventListener('click', function(e) {
+                const href = this.getAttribute('href');
+                if (href && !href.startsWith('#')) {
+                    window.location.href = href;
+                }
+            });
+            
+            // Add keyboard handler
+            button.addEventListener('keydown', function(e) {
+                // Trigger on Enter or Space
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const href = this.getAttribute('href');
+                    if (href && !href.startsWith('#')) {
+                        window.location.href = href;
+                    }
+                }
+            });
+        });
+    });
+</script>
 </body>
 </html>
 
