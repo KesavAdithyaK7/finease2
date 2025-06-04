@@ -741,35 +741,53 @@
                 const data = await response.json();
                 console.log(`API success for ${endpoint}:`, data);
                 
+                // Remove any connection error messages if request succeeds
+                const errorEl = document.getElementById('connectionError');
+                if (errorEl) errorEl.remove();
+                
                 return data;
                 
             } catch (error) {
                 console.error(`API Error (${endpoint}):`, error);
-                alert('Server connection failed. Please check your internet connection and try again.');
+                
+                // Show a less intrusive error message
+                showConnectionError('Connection issue detected. Working offline.');
+                
                 throw error;
             }
         }
 
-        function saveTransactionLocally(transactionData) {
-            try {
-                const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
-                const username = sessionData.username;
-                
-                const transactions = JSON.parse(localStorage.getItem(`transactions_backup_${username}`) || '[]');
-                transactions.unshift({
-                    item: transactionData.item,
-                    amount: transactionData.amount,
-                    category: transactionData.category,
-                    date: new Date().toISOString(),
-                    description: transactionData.item,
-                    synced: false // Mark as not synced to server
-                });
-                
-                localStorage.setItem(`transactions_backup_${username}`, JSON.stringify(transactions));
-                console.log('Transaction saved to local backup');
-            } catch (error) {
-                console.error('Error saving to local backup:', error);
-            }
+        function showConnectionError(message) {
+            // Remove existing error message
+            const existingError = document.getElementById('connectionError');
+            if (existingError) existingError.remove();
+            
+            // Show a small, non-intrusive banner instead of alert
+            const errorDiv = document.createElement('div');
+            errorDiv.id = 'connectionError';
+            errorDiv.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded-lg shadow-lg z-50';
+            errorDiv.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-3 text-yellow-600 hover:text-yellow-800">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(errorDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (errorDiv.parentElement) {
+                    errorDiv.remove();
+                }
+            }, 5000);
         }
 
         // Event Handlers - Fix the actual API calls
@@ -793,6 +811,7 @@
                 e.target.reset();
             } catch (error) {
                 console.error('Error starting tracking:', error);
+                // Don't show alert here, the apiCall function already handled the error display
             }
         }
 
@@ -842,6 +861,7 @@
 
             } catch (error) {
                 console.error('Error adding expense:', error);
+                // Don't show alert here, let the user continue working
             }
         }
 
@@ -856,6 +876,7 @@
                 showFinalSummary(data);
             } catch (error) {
                 console.error('Error finishing tracking:', error);
+                // Don't show alert here
             }
         }
 
@@ -950,6 +971,7 @@
                 }
             }).catch(error => {
                 console.log('No active expense session found');
+                // This is normal - don't show any error message
             });
         });
 

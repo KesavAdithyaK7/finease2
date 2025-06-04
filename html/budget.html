@@ -820,7 +820,7 @@
                 ...budgetData,
                 synced: false
             }));
-            alert('Server connection failed. Your budget has been saved locally and will sync when connection is restored.');
+            // Remove the intrusive alert - just show in the sync status
         });
     }
 
@@ -888,7 +888,8 @@
                     updateSyncStatus('error');
                 }
             } else {
-                alert('Server connection failed and no local backup found. Please check your internet connection.');
+                // Don't show alert - just update sync status
+                console.log('No server connection and no local backup available');
             }
         });
     }
