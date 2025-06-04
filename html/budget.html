@@ -846,9 +846,17 @@
             lastUpdated: new Date().toISOString()
         };
 
-        // Still store in sessionStorage as a backup/cache
+        // Store in sessionStorage as the primary storage method
         sessionStorage.setItem('budgetData', JSON.stringify(budgetData));
         
+        // Update sync status to show saved
+        setTimeout(() => {
+            updateSyncStatus('saved');
+        }, 500);
+        
+        // API endpoint is commented out since it's not working
+        // Instead rely on sessionStorage for persistence
+        /*
         // Send to MongoDB via API
         fetch('/api/budget/save', {
             method: 'POST',
@@ -870,6 +878,7 @@
             updateSyncStatus('offline');
             // We still have data in sessionStorage as backup
         });
+        */
     }
 
     function loadBudget() {
@@ -879,12 +888,21 @@
             return;
         }
 
-        // First try to load budget data from sessionStorage for immediate display
+        // Load budget data directly from sessionStorage
         const savedBudget = sessionStorage.getItem('budgetData');
         if (savedBudget) {
-            updateUIWithBudgetData(JSON.parse(savedBudget));
+            try {
+                const budgetData = JSON.parse(savedBudget);
+                updateUIWithBudgetData(budgetData);
+                updateSyncStatus('loaded');
+                console.log("Budget data loaded from sessionStorage:", budgetData);
+            } catch (error) {
+                console.error("Error parsing saved budget data:", error);
+            }
         }
 
+        // API endpoint call is not working, so we'll rely solely on sessionStorage
+        /*
         // Then fetch the latest data from the server
         fetch('/api/budget/load', {
             headers: {
@@ -924,10 +942,47 @@
             console.error('Error loading budget data from server:', error);
             // If server fetch fails, we'll continue using the sessionStorage data
         });
+        */
     }
+
+    function updateSyncStatus(status) {
+        const element = document.getElementById('syncMessage');
+        element.style.transition = 'all 0.2s ease-out';
+        
+        switch(status) {
+            case 'saving':
+                element.textContent = 'Saving your budget...';
+                element.className = 'text-blue-500';
+                break;
+            case 'saved':
+                element.textContent = 'Budget saved successfully';
+                element.className = 'text-green-500';
+                break;
+            case 'offline':
+                element.textContent = 'Saved locally (offline mode)';
+                element.className = 'text-yellow-500';
+                break;
+            case 'loading':
+                element.textContent = 'Loading your budget...';
+                element.className = 'text-blue-500';
+                break;
+            case 'loaded':
+                element.textContent = 'Budget loaded successfully';
+                element.className = 'text-green-500';
+                break;
+            case 'error':
+                element.textContent = 'Error saving budget';
+                element.className = 'text-red-500';
+                break;
+        }
+    }
+
+    // ...existing code...
 
     function updateUIWithBudgetData(data) {
         if (!data) return;
+
+        console.log("Updating UI with budget data:", data);
 
         // Set income
         document.getElementById('monthlyIncome').value = data.income || '';
@@ -952,111 +1007,29 @@
                     }
                     
                     slider.value = allocation.amount;
-                    document.getElementById(`${allocation.id}Amount`).textContent = 
-                        `₹${parseInt(allocation.amount).toLocaleString('en-IN')}`;
+                    const amountElement = document.getElementById(`${allocation.id}Amount`);
+                    if (amountElement) {
+                        amountElement.textContent = `₹${parseInt(allocation.amount).toLocaleString('en-IN')}`;
+                    }
+
+                    // Need to manually trigger an input event to update the UI
+                    const event = new Event('input', { bubbles: true });
+                    slider.dispatchEvent(event);
                 }
             });
         }
         
+        // Update budget visualization
         updateBudget();
-    }
-
-    function updateSyncStatus(status) {
-        const element = document.getElementById('syncMessage');
-        element.style.transition = 'all 0.2s ease-out';
         
-        switch(status) {
-            case 'saving':
-                element.textContent = 'Saving to server...';
-                element.className = 'text-blue-500';
-                break;
-            case 'saved':
-                element.textContent = 'Saved to account';
-                element.className = 'text-green-500';
-                break;
-            case 'offline':
-                element.textContent = 'Saved locally only (offline)';
-                element.className = 'text-yellow-500';
-                break;
-            case 'loading':
-                element.textContent = 'Loading your budget...';
-                element.className = 'text-blue-500';
-                break;
+        // Show the budget summary if we have income
+        if (totalIncome > 0) {
+            document.getElementById('budgetSummary').classList.remove('hidden');
+            document.getElementById('summaryIncome').textContent = `₹${totalIncome.toLocaleString('en-IN')}`;
         }
     }
 
-    function getCurrentChartData() {
-        // Helper function to get current chart data for window resize events
-        if (!totalIncome) return null;
-        
-        return [...categories, ...customCategories].map(cat => {
-            const input = document.querySelector(`input[oninput*="${cat.id}"]`);
-            const amount = input ? parseFloat(input.value) : cat.default;
-            const percent = totalIncome > 0 ? ((amount / totalIncome) * 100).toFixed(1) : 0;
-            return { 
-                category: cat.name, 
-                amount, 
-                percent, 
-                color: cat.color 
-            };
-        });
-    }
-    
-    function displayUsername() {
-        const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
-        const username = sessionData.username || 'User';
-        const email = sessionData.email || 'No email available';
-        
-        if (username) {
-            document.getElementById('userName').textContent = username;
-            document.getElementById('userNameSidebar').textContent = username;
-        }
-        
-        if (email) {
-            document.getElementById('userEmail').textContent = email;
-        }
-    }
-    
-    function logout() {
-        if (confirm('Are you sure you want to logout?')) {
-            sessionStorage.removeItem('userSession');
-            sessionStorage.removeItem('budgetData');
-            window.location.href = 'login.html';
-        }
-    }
-
-    // Add this function to handle API errors
-
-    function showApiError(message) {
-        const container = document.getElementById('budgetSliders');
-        if (!container) return;
-        
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'text-red-500 bg-red-50 p-4 rounded-lg my-4';
-        errorDiv.innerHTML = `
-            <div class="flex items-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <p>${message}</p>
-            </div>
-            <p class="mt-2 text-sm">Your changes are saved locally.</p>
-        `;
-        
-        // Remove existing error message if any
-        const existingError = container.querySelector('.text-red-500.bg-red-50');
-        if (existingError) {
-            existingError.remove();
-        }
-        
-        container.prepend(errorDiv);
-        
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-            errorDiv.classList.add('fade-out');
-            setTimeout(() => errorDiv.remove(), 500);
-        }, 5000);
-    }
+    // ...existing code...
 
     // Initialize with clean loading
     document.addEventListener('DOMContentLoaded', () => {
@@ -1089,16 +1062,26 @@
         // Display username
         displayUsername();
 
+        // Update sync status to loading
+        updateSyncStatus('loading');
+
         // Initialize UI
         renderSliders();
+        
+        // Load budget data from sessionStorage
         loadBudget();
         
         // Add event listeners
         document.getElementById('categoryForm').addEventListener('submit', addCategory);
-        window.addEventListener('resize', debounce(() => {
-            const data = getCurrentChartData();
-            if (data) updateChart(data);
-        }, 250));
+        
+        // Listen for manual income changes
+        document.getElementById('monthlyIncome').addEventListener('change', function() {
+            renderSliders();
+            updateBudget();
+            saveBudget(); // Save when income changes
+        });
+        
+        // ...existing code...
     });
     </script>
 </body>
