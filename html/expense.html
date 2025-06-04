@@ -616,7 +616,8 @@
                     datasets: [{
                         data: values,
                         backgroundColor: colors,
-                        borderWidth: 0,
+                        borderWidth: 1,
+                        borderColor: '#ffffff',
                         hoverOffset: 5
                     }]
                 },
@@ -636,16 +637,50 @@
                     legend: {
                         position: isMobile ? 'bottom' : 'right',
                         labels: {
-                            padding: 10,
-                            usePointStyle: true
+                            usePointStyle: true,
+                            padding: isMobile ? 10 : 15,
+                            boxWidth: isMobile ? 8 : 10,
+                            font: {
+                                family: 'Inter',
+                                size: isMobile ? 9 : 11
+                            },
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map((label, i) => {
+                                        const meta = chart.getDatasetMeta(0);
+                                        const ds = data.datasets[0];
+                                        const value = ds.data[i];
+                                        const total = ds.data.reduce((acc, val) => acc + val, 0);
+                                        const percentage = Math.round((value / total) * 100);
+                                        
+                                        // Shorter label text for mobile
+                                        const text = isMobile ? 
+                                            `${label}: ${percentage}%` : 
+                                            `${label}: ${displayAmount(value)} (${percentage}%)`;
+                                        
+                                        return {
+                                            text: text,
+                                            fillStyle: ds.backgroundColor[i],
+                                            strokeStyle: ds.backgroundColor[i],
+                                            lineWidth: 0,
+                                            hidden: isNaN(ds.data[i]) || meta.data[i].hidden,
+                                            index: i
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
                         }
                     },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
                                 const label = context.label || '';
-                                const value = context.raw || 0;
-                                return `${label}: ₹${value.toLocaleString('en-IN')}`;
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((acc, data) => acc + data, 0);
+                                const percentage = ((value * 100) / total).toFixed(1);
+                                return `${label}: ${displayAmount(value)} (${percentage}%)`;
                             }
                         }
                     }
@@ -674,8 +709,11 @@
             return categories;
         }
         
-        // API Calls - Fix the actual function
-        async function apiCall(endpoint, method = 'GET', body = null) {
+        // API Calls - More robust implementation with retry logic
+        const MAX_RETRIES = 3; 
+        const RETRY_DELAY = 1000;
+        
+        async function apiCall(endpoint, method = 'GET', body = null, retryCount = 0) {
             const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
             if (!sessionData.token) {
                 window.location.href = 'login.html';
@@ -690,7 +728,303 @@
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${sessionData.token}`
-                    }
+                    },
+                    // Add timeout to prevent hanging requests
+                    signal: AbortSignal.timeout(10000) // 10 second timeout
                 };
 
-                if
+                if (body) {
+                    options.body = JSON.stringify(body);
+                }
+
+                // Check connection status first
+                if (!navigator.onLine) {
+                    throw new Error('You appear to be offline. Please check your internet connection.');
+                }
+
+                // Attempt server connection
+                let response;
+                try {
+                    response = await fetch(`${API_URL}${endpoint}`, options);
+                } catch (fetchError) {
+                    // Network-level error (CORS, DNS, etc.)
+                    if (retryCount < MAX_RETRIES) {
+                        console.log(`Retry attempt ${retryCount + 1} for ${endpoint}`);
+                        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retryCount + 1)));
+                        return apiCall(endpoint, method, body, retryCount + 1);
+                    }
+                    throw new Error('Network connection failed');
+                }
+
+                if (!response.ok) {
+                    // Server returned an error status
+                    if (response.status === 401) {
+                        // Authentication error - redirect to login
+                        sessionStorage.removeItem('userSession');
+                        window.location.href = 'login.html?session_expired=true';
+                        return;
+                    } else if (response.status === 503 || response.status === 504) {
+                        // Service unavailable or gateway timeout - retry
+                        if (retryCount < MAX_RETRIES) {
+                            console.log(`Retry attempt ${retryCount + 1} for ${endpoint} after ${response.status}`);
+                            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * (retryCount + 1)));
+                            return apiCall(endpoint, method, body, retryCount + 1);
+                        }
+                    }
+                    
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log(`API success for ${endpoint}:`, data);
+                
+                // Remove any connection error messages if request succeeds
+                const errorEl = document.getElementById('connectionError');
+                if (errorEl) errorEl.remove();
+                
+                return data;
+                
+            } catch (error) {
+                console.error(`API Error (${endpoint}):`, error);
+                
+                // Save locally if it's a write operation (POST, PUT)
+                if (method !== 'GET') {
+                    saveTransactionLocally({
+                        endpoint,
+                        method,
+                        body,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                
+                // Show a less intrusive error message
+                showConnectionError('Connection issue detected. Working offline.');
+                
+                // For GET requests, try to return local data
+                if (method === 'GET') {
+                    const localData = getLocalData(endpoint);
+                    if (localData) {
+                        console.log(`Using local data for ${endpoint}`);
+                        return localData;
+                    }
+                }
+                
+                throw error;
+            }
+        }
+
+        // Store API call locally
+        function saveTransactionLocally(transactionData) {
+            try {
+                const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+                const username = sessionData.username;
+                
+                // For expense tracking specifically
+                if (transactionData.body && transactionData.endpoint === '/expense/add') {
+                    const transactions = JSON.parse(localStorage.getItem(`transactions_backup_${username}`) || '[]');
+                    transactions.unshift({
+                        item: transactionData.body.item,
+                        amount: transactionData.body.amount,
+                        category: transactionData.body.category,
+                        date: new Date().toISOString(),
+                        description: transactionData.body.item,
+                        synced: false
+                    });
+                    
+                    localStorage.setItem(`transactions_backup_${username}`, JSON.stringify(transactions));
+                }
+                
+                // Store all pending API calls
+                const pendingCalls = JSON.parse(localStorage.getItem(`pending_api_calls_${username}`) || '[]');
+                pendingCalls.push(transactionData);
+                localStorage.setItem(`pending_api_calls_${username}`, JSON.stringify(pendingCalls));
+                console.log('API call saved to local backup for future synchronization');
+            } catch (error) {
+                console.error('Error saving to local backup:', error);
+            }
+        }
+
+        // Get local data for GET endpoints
+        function getLocalData(endpoint) {
+            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+            const username = sessionData.username;
+            
+            if (endpoint === '/expense/current') {
+                // Try to get current expense session from localStorage
+                const activeSession = localStorage.getItem(`active_expense_session_${username}`);
+                if (activeSession) {
+                    return JSON.parse(activeSession);
+                }
+            } else if (endpoint === '/transactions') {
+                // Return local transactions
+                const transactions = localStorage.getItem(`transactions_backup_${username}`);
+                if (transactions) {
+                    return JSON.parse(transactions);
+                }
+            }
+            
+            return null;
+        }
+
+        // Connection status monitor
+        window.addEventListener('online', syncPendingCalls);
+        window.addEventListener('offline', () => {
+            showConnectionError('You are offline. Changes will be saved locally.');
+        });
+
+        // Attempt to synchronize pending calls when connection is restored
+        async function syncPendingCalls() {
+            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+            if (!sessionData.token || !navigator.onLine) return;
+            
+            const username = sessionData.username;
+            const pendingCalls = JSON.parse(localStorage.getItem(`pending_api_calls_${username}`) || '[]');
+            
+            if (pendingCalls.length === 0) return;
+            
+            showConnectionError('Synchronizing offline changes...');
+            
+            const successfulCalls = [];
+            
+            for (const call of pendingCalls) {
+                try {
+                    await apiCall(call.endpoint, call.method, call.body);
+                    successfulCalls.push(call);
+                } catch (error) {
+                    console.error('Failed to sync call:', error);
+                    break; // Stop syncing on first error
+                }
+            }
+            
+            // Remove successful calls from pending list
+            if (successfulCalls.length > 0) {
+                const remainingCalls = pendingCalls.filter(call => 
+                    !successfulCalls.some(sc => 
+                        sc.endpoint === call.endpoint && 
+                        sc.timestamp === call.timestamp
+                    )
+                );
+                localStorage.setItem(`pending_api_calls_${username}`, JSON.stringify(remainingCalls));
+                
+                if (remainingCalls.length === 0) {
+                    showConnectionError('All changes synchronized successfully!');
+                    setTimeout(() => {
+                        const errorEl = document.getElementById('connectionError');
+                        if (errorEl) errorEl.remove();
+                    }, 3000);
+                } else {
+                    showConnectionError(`Synchronized ${successfulCalls.length} changes. ${remainingCalls.length} pending.`);
+                }
+            }
+        }
+
+        // Better visibility handling - sync when tab becomes visible again
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && navigator.onLine) {
+                syncPendingCalls();
+            }
+        });
+
+        function showConnectionError(message) {
+            // Remove existing error message
+            const existingError = document.getElementById('connectionError');
+            if (existingError) existingError.remove();
+            
+            // Show a small, non-intrusive banner instead of alert
+            const errorDiv = document.createElement('div');
+            errorDiv.id = 'connectionError';
+            errorDiv.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded-lg shadow-lg z-50';
+            errorDiv.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                    <span>${message}</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-3 text-yellow-600 hover:text-yellow-800">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(errorDiv);
+            
+            // Auto-remove after 5 seconds unless it's an offline warning
+            if (!message.includes('offline')) {
+                setTimeout(() => {
+                    if (errorDiv.parentElement) {
+                        errorDiv.remove();
+                    }
+                }, 5000);
+            }
+        }
+
+        // Initialize - Check connection status and sync any pending changes
+        document.addEventListener('DOMContentLoaded', () => {
+            // Menu handlers
+            const menuBtn = document.getElementById('menuBtn');
+            const closeMenu = document.getElementById('closeMenu');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+
+            menuBtn.addEventListener('click', () => {
+                sidebar.classList.add('active');
+                overlay.classList.add('active');
+            }); 
+
+            const closeMenuFunction = () => {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            };
+
+            closeMenu.addEventListener('click', closeMenuFunction);
+            overlay.addEventListener('click', closeMenuFunction);
+
+            // Form handlers
+            document.getElementById('startTrackingForm').addEventListener('submit', handleStartTracking);
+            document.getElementById('addExpenseForm').addEventListener('submit', handleAddExpense);
+            document.getElementById('finishTracking').addEventListener('click', handleFinishTracking);
+
+            // Check auth and load current session
+            checkAuth();
+            displayUsername();
+            
+            // Try to load current expense tracking session
+            apiCall('/expense/current').then(data => {
+                if (data) {
+                    toggleSections(['addExpense', 'chartSection', 'expenseListContainer'], ['startTracking']);
+                    updateBalance(data.remainingAmount);
+                    updateChart(data);
+                    updateExpenseList(data.expenses || []);
+                }
+            }).catch(error => {
+                console.log('No active expense session found');
+                // This is normal - don't show any error message
+            });
+        });
+
+        function displayUsername() {
+            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+            const username = sessionData.username;
+            const email = sessionData.email;
+            
+            if (username) {
+                document.getElementById('userName').textContent = username;
+                document.getElementById('userNameSidebar').textContent = username;
+            }
+            
+            if (email) {
+                document.getElementById('userEmail').textContent = email;
+            }
+        }
+        
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                sessionStorage.removeItem('userSession');
+                window.location.href = 'login.html';
+            }
+        }
+    </script>
+</body>
+</html>

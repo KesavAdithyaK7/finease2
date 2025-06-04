@@ -33,14 +33,27 @@ app.use(express.static(path.join(__dirname,'html')));
 // ===============================
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI, {
+function connectWithRetry() {
+  mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
-    useUnifiedTopology: true
-}).then(() => {
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+    socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
+  }).then(() => {
     console.log('Connected to MongoDB');
-}).catch((err) => {
+  }).catch(err => {
     console.error('MongoDB connection error:', err);
+    console.log('Retrying connection in 5 seconds...');
+    setTimeout(connectWithRetry, 5000);
+  });
+}
+
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB disconnected! Reconnecting...');
+  connectWithRetry();
 });
+
+connectWithRetry();
 
 // User Schema 
 const userSchema = new mongoose.Schema({
@@ -383,6 +396,20 @@ app.post('/api/login', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'Server error' });
     }
+});
+
+// Enhance error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    error: process.env.NODE_ENV === 'production' ? 'Server error' : err.message
+  });
+});
+
+// Add health check endpoint for connection verification
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Default route

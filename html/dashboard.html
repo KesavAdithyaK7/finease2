@@ -385,12 +385,19 @@
             
             console.log('Loading transactions from server...');
             
+            if (!navigator.onLine) {
+                console.log('Device is offline, loading from local storage');
+                loadLocalTransactions();
+                return;
+            }
+            
             // LOAD FROM SERVER FIRST
             fetch('/api/transactions?limit=5', {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${sessionData.token}`
-                }
+                },
+                signal: AbortSignal.timeout(8000) // 8 second timeout
             })
             .then(response => {
                 if (!response.ok) {
@@ -401,24 +408,71 @@
             .then(transactions => {
                 console.log('Transactions loaded from server:', transactions);
                 displayTransactions(transactions);
+                
+                // Cache transactions locally for offline use
+                const username = sessionData.username;
+                localStorage.setItem(`dashboard_transactions_${username}`, JSON.stringify(transactions));
             })
             .catch(error => {
                 console.error('Failed to load from server:', error);
-                
-                // Fallback to localStorage backup only if server fails
-                console.log('Falling back to local backup...');
-                const username = sessionData.username;
-                const backupTransactions = JSON.parse(localStorage.getItem(`transactions_backup_${username}`) || '[]');
-                
-                if (backupTransactions.length > 0) {
-                    displayTransactions(backupTransactions.slice(0, 5));
-                } else {
-                    displayNoTransactions();
-                }
-                
-                // Don't show alert - just log the error
+                loadLocalTransactions();
             });
         }
+        
+        function loadLocalTransactions() {
+            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+            const username = sessionData.username;
+            
+            // Try cached dashboard transactions first
+            const cachedTransactions = localStorage.getItem(`dashboard_transactions_${username}`);
+            if (cachedTransactions) {
+                displayTransactions(JSON.parse(cachedTransactions));
+                return;
+            }
+            
+            // Fallback to backup transactions
+            const backupTransactions = JSON.parse(localStorage.getItem(`transactions_backup_${username}`) || '[]');
+            
+            if (backupTransactions.length > 0) {
+                displayTransactions(backupTransactions.slice(0, 5));
+                showOfflineIndicator();
+            } else {
+                displayNoTransactions();
+            }
+        }
+        
+        function showOfflineIndicator() {
+            // Add an offline indicator to the dashboard
+            const indicator = document.createElement('div');
+            indicator.className = 'bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6';
+            indicator.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                    <p class="text-sm text-yellow-700">
+                        You're viewing offline data. Some information may not be up-to-date.
+                    </p>
+                </div>
+            `;
+            
+            const container = document.querySelector('main');
+            if (container) {
+                container.insertBefore(indicator, container.firstChild);
+            }
+        }
+
+        // Add connection event listeners
+        window.addEventListener('online', () => {
+            console.log('Connection restored, reloading data');
+            location.reload();
+        });
+        
+        window.addEventListener('offline', () => {
+            console.log('Connection lost');
+            showOfflineIndicator();
+        });
 
         function displayTransactions(transactions) {
             const transactionsList = document.getElementById('transactions-list');
