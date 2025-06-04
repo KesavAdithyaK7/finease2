@@ -1025,6 +1025,93 @@
                 window.location.href = 'login.html';
             }
         }
+
+        // Event Handlers - Fix the missing handler functions
+        async function handleStartTracking(e) {
+            e.preventDefault();
+            try {
+                const initialAmount = Number(document.getElementById('initialAmount').value);
+                
+                if (initialAmount <= 0) {
+                    alert('Please enter a valid amount greater than 0');
+                    return;
+                }
+                
+                const data = await apiCall('/expense/start', 'POST', { initialAmount });
+                
+                toggleSections(['addExpense', 'chartSection'], ['startTracking']);
+                updateBalance(data.remainingAmount);
+                updateChart(data);
+                updateExpenseList(data.expenses || []);
+                
+                e.target.reset();
+            } catch (error) {
+                console.error('Error starting tracking:', error);
+            }
+        }
+
+        async function handleAddExpense(e) {
+            e.preventDefault();
+            
+            try {
+                const amount = Number(document.getElementById('expenseAmount').value);
+                const item = document.getElementById('expenseItem').value.trim();
+                const category = document.getElementById('expenseCategory').value;
+                
+                if (amount <= 0) {
+                    alert('Please enter a valid amount greater than 0');
+                    return;
+                }
+                
+                if (!item) {
+                    alert('Please enter a description for this transaction');
+                    return;
+                }
+                
+                if (!category) {
+                    alert('Please select a category');
+                    return;
+                }
+                
+                const currentData = await apiCall('/expense/current', 'GET');
+                if (!currentData) {
+                    alert('No active expense session found. Please start tracking first.');
+                    return;
+                }
+                
+                const remainingBalance = currentData.remainingAmount;
+                
+                if (category !== 'Income' && amount > remainingBalance) {
+                    alert(`Insufficient balance! You only have ₹${remainingBalance.toLocaleString('en-IN')} remaining.`);
+                    return;
+                }
+
+                const data = await apiCall('/expense/add', 'POST', { item, amount, category });
+                
+                updateBalance(data.remainingAmount);
+                updateChart(data);
+                updateExpenseList(data.expenses);
+                
+                e.target.reset();
+
+            } catch (error) {
+                console.error('Error adding expense:', error);
+            }
+        }
+
+        async function handleFinishTracking() {
+            if (!confirm('Are you sure you want to finish tracking? This will end your current session.')) {
+                return;
+            }
+            
+            try {
+                const data = await apiCall('/expense/finish', 'DELETE');
+                toggleSections(['finalSummary'], ['addExpense', 'chartSection', 'expenseListContainer']);
+                showFinalSummary(data);
+            } catch (error) {
+                console.error('Error finishing tracking:', error);
+            }
+        }
     </script>
 </body>
 </html>

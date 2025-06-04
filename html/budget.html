@@ -579,7 +579,7 @@
                 warningEl.className = 'text-yellow-600 text-sm mt-1';
                 slider.parentElement.appendChild(warningEl);
             }
-            warningEl.textContent = `Warning: We recommend saving at least ${Math.round(totalIncome * 0.2).toLocaleString('en-IN')} (20% of income)`;
+            warningEl.textContent = `Warning: We recommend saving at least ₹${Math.round(totalIncome * 0.2).toLocaleString('en-IN')} (20% of income)`;
         } else if (id === 'savings') {
             const warningEl = document.getElementById('savingsWarning');
             if (warningEl) warningEl.remove();
@@ -591,7 +591,8 @@
         
         // Update totals
         const totalAllocated = [...categories, ...customCategories].reduce((sum, cat) => {
-            const value = parseInt(document.querySelector(`input[oninput*="${cat.id}"]`).value);
+            const input = document.querySelector(`input[oninput*="${cat.id}"]`);
+            const value = input ? parseInt(input.value) : 0;
             return sum + value;
         }, 0);
         
@@ -603,8 +604,11 @@
         document.getElementById('remainingToAllocate').textContent = `₹${remaining.toLocaleString('en-IN')} (${remainingPercent}%)`;
         
         // Highlight if over budget
-        document.getElementById('totalAllocation').classList.toggle('text-red-600', totalAllocated > totalIncome);
-        document.getElementById('remainingToAllocate').classList.toggle('text-red-600', remaining < 0);
+        const totalAllocationEl = document.getElementById('totalAllocation');
+        const remainingEl = document.getElementById('remainingToAllocate');
+        
+        totalAllocationEl.className = totalAllocated > totalIncome ? 'text-xl font-bold text-red-600' : 'text-xl font-bold text-blue-600';
+        remainingEl.className = remaining < 0 ? 'text-lg font-semibold text-red-600' : 'text-lg font-semibold text-green-600';
         
         updateBudget();
         
@@ -612,381 +616,7 @@
         syncToServer();
     }
 
-    const debounce = (func, delay) => {
-        let timeout;
-        return (...args) => {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(this, args), delay);
-        };
-    };
-
-    const syncToServer = debounce(saveBudget, 1000);
-
-    function updateBudget() {
-        const income = parseFloat(document.getElementById('monthlyIncome').value) || 0;
-        totalIncome = income;
-        
-        if (income === 0) {
-            if (budgetChart) {
-                budgetChart.destroy();
-                budgetChart = null;
-            }
-            document.getElementById('breakdownList').innerHTML = '';
-            return;
-        }
-        
-        const data = [...categories, ...customCategories].map(cat => {
-            const input = document.querySelector(`input[oninput*="${cat.id}"]`);
-            const amount = input ? parseFloat(input.value) : cat.default;
-            const percent = income > 0 ? ((amount / income) * 100).toFixed(1) : 0;
-            return { 
-                category: cat.name, 
-                amount, 
-                percent, 
-                color: cat.color 
-            };
-        });
-
-        updateChart(data);
-        updateBreakdown(data);
-    }
-
-    function updateChart(data) {
-        const ctx = document.getElementById('budgetChart');
-        if (!ctx) return;
-        
-        if (budgetChart) {
-            budgetChart.destroy();
-        }
-
-        // Calculate total allocated
-        const totalAllocated = data.reduce((sum, item) => sum + item.amount, 0);
-        
-        // If there's unallocated money, add it to the chart
-        let chartData = [...data];
-        if (totalIncome > totalAllocated) {
-            chartData.push({
-                category: 'Unallocated',
-                amount: totalIncome - totalAllocated,
-                percent: (((totalIncome - totalAllocated) / totalIncome) * 100).toFixed(1),
-                color: '#94a3b8' // Slate color for unallocated
-            });
-        }
-
-        budgetChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: chartData.map(item => item.category),
-                datasets: [{
-                    data: chartData.map(item => item.amount),
-                    backgroundColor: chartData.map(item => item.color),
-                    borderWidth: 1,
-                    borderColor: '#ffffff'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '70%',
-                plugins: {
-                    legend: {
-                        position: window.innerWidth < 768 ? 'bottom' : 'right',
-                        labels: {
-                            padding: 10,
-                            usePointStyle: true,
-                            font: {
-                                size: 11
-                            }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.raw || 0;
-                                const percentage = ((value / totalIncome) * 100).toFixed(1);
-                                return `${label}: ₹${value.toLocaleString('en-IN')} (${percentage}%)`;
-                            }
-                        }
-                    }
-                },
-                animation: {
-                    duration: 200,
-                    easing: 'easeOutQuart'
-                }
-            }});
-    }
-
-    function updateBreakdown(data) {
-        const list = document.getElementById('breakdownList');
-        if (!list) return;
-        
-        // Sort data by amount (descending)
-        const sortedData = [...data].sort((a, b) => b.amount - a.amount);
-        
-        list.innerHTML = sortedData.map(item => `
-            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg breakdown-item">
-                <div class="flex items-center space-x-2">
-                    <div class="w-3 h-3 rounded-full" style="background-color: ${item.color}"></div>
-                    <span class="font-medium">${item.category}</span>
-                </div>
-                <div class="text-right">
-                    <span class="font-semibold">₹${item.amount.toLocaleString('en-IN')}</span>
-                    <span class="text-xs text-gray-600 ml-1">(${item.percent}%)</span>
-                </div>
-            </div>
-        `).join('');
-        
-        // Add unallocated funds breakdown if any
-        const totalAllocated = data.reduce((sum, item) => sum + item.amount, 0);
-        if (totalIncome > totalAllocated) {
-            const unallocated = totalIncome - totalAllocated;
-            const unallocatedPercent = ((unallocated / totalIncome) * 100).toFixed(1);
-            
-            const unallocatedElement = document.createElement('div');
-            unallocatedElement.className = "flex justify-between items-center p-3 bg-gray-50 rounded-lg breakdown-item";
-            unallocatedElement.innerHTML = `
-                <div class="flex items-center space-x-2">
-                    <div class="w-3 h-3 rounded-full bg-gray-400"></div>
-                    <span class="font-medium text-gray-500">Unallocated</span>
-                </div>
-                <div class="text-right">
-                    <span class="font-semibold text-gray-500">₹${unallocated.toLocaleString('en-IN')}</span>
-                    <span class="text-xs text-gray-600 ml-1">(${unallocatedPercent}%)</span>
-                </div>
-            `;
-            
-            list.appendChild(unallocatedElement);
-        }
-    }
-
-    function saveBudget() {
-        updateSyncStatus('saving');
-        
-        const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
-        if (!sessionData.token) {
-            updateSyncStatus('error');
-            return;
-        }
-
-        const budgetData = {
-            income: document.getElementById('monthlyIncome').value,
-            customCategories,
-            allocations: [...categories, ...customCategories].map(cat => {
-                const input = document.querySelector(`input[oninput*="${cat.id}"]`);
-                const value = input ? parseInt(input.value) : cat.default;
-                return {
-                    id: cat.id,
-                    percent: totalIncome > 0 ? ((value / totalIncome) * 100) : 0
-                };
-            }),
-            lastUpdated: new Date().toISOString()
-        };
-
-        // SAVE TO SERVER FIRST
-        fetch('/api/budget/save', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${sessionData.token}`
-            },
-            body: JSON.stringify(budgetData)
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Server responded with status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Budget saved to server successfully:", data);
-            updateSyncStatus('saved');
-            
-            // Also save to localStorage as backup
-            const storageKey = `budgetData_backup_${sessionData.username}`;
-            localStorage.setItem(storageKey, JSON.stringify({
-                ...budgetData,
-                synced: true,
-                lastUpdated: data.lastUpdated
-            }));
-        })
-        .catch(error => {
-            console.error('Server save failed:', error.message);
-            updateSyncStatus('error');
-            
-            // Save to localStorage as backup only if server fails
-            const storageKey = `budgetData_backup_${sessionData.username}`;
-            localStorage.setItem(storageKey, JSON.stringify({
-                ...budgetData,
-                synced: false
-            }));
-            // Remove the intrusive alert - just show in the sync status
-        });
-    }
-
-    function loadBudget() {
-        updateSyncStatus('loading');
-        
-        const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
-        if (!sessionData.token) {
-            window.location.href = 'login.html';
-            return;
-        }
-
-        console.log("Loading budget data from server...");
-        
-        // LOAD FROM SERVER FIRST
-        fetch('/api/budget/load', {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${sessionData.token}`
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                if (response.status === 404) {
-                    console.log("No budget found on server");
-                    updateSyncStatus('loaded');
-                    return null;
-                }
-                throw new Error(`Server responded with status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data) {
-                console.log("Budget data loaded from server:", data);
-                updateUIWithBudgetData(data);
-                updateSyncStatus('saved');
-                
-                // Save to localStorage as backup
-                const storageKey = `budgetData_backup_${sessionData.username}`;
-                localStorage.setItem(storageKey, JSON.stringify({
-                    ...data,
-                    synced: true
-                }));
-            } else {
-                updateSyncStatus('loaded');
-            }
-        })
-        .catch(error => {
-            console.error('Failed to load from server:', error.message);
-            updateSyncStatus('error');
-            
-            // Fallback to localStorage backup only if server fails
-            const storageKey = `budgetData_backup_${sessionData.username}`;
-            const localData = localStorage.getItem(storageKey);
-            
-            if (localData) {
-                try {
-                    const budgetData = JSON.parse(localData);
-                    console.log("Budget loaded from local backup:", budgetData);
-                    updateUIWithBudgetData(budgetData);
-                    updateSyncStatus('offline');
-                } catch (error) {
-                    console.error("Error parsing local budget data:", error);
-                    updateSyncStatus('error');
-                }
-            } else {
-                // Don't show alert - just update sync status
-                console.log('No server connection and no local backup available');
-            }
-        });
-    }
-
-    function updateUIWithBudgetData(data) {
-        console.log("Updating UI with budget data:", data);
-        
-        // Set income
-        document.getElementById('monthlyIncome').value = data.income || 0;
-        totalIncome = parseFloat(data.income) || 0;
-        
-        // Load custom categories
-        customCategories = data.customCategories || [];
-        
-        // Render sliders first
-        renderSliders();
-        
-        // Then set allocations
-        if (data.allocations && data.allocations.length > 0) {
-            data.allocations.forEach(allocation => {
-                const input = document.querySelector(`input[oninput*="${allocation.id}"]`);
-                if (input && totalIncome > 0) {
-                    const amount = Math.round((allocation.percent / 100) * totalIncome);
-                    input.value = amount;
-                    
-                    // Update display
-                    const amountEl = document.getElementById(`${allocation.id}Amount`);
-                    const percentEl = document.getElementById(`${allocation.id}Percent`);
-                    if (amountEl) amountEl.textContent = `₹${amount.toLocaleString('en-IN')}`;
-                    if (percentEl) percentEl.textContent = `(${allocation.percent.toFixed(1)}%)`;
-                }
-            });
-        }
-        
-        // Update budget display
-        updateBudget();
-    }
-
-    function updateSyncStatus(status) {
-        const syncMessage = document.getElementById('syncMessage');
-        const syncIcon = syncMessage.previousElementSibling;
-        
-        switch(status) {
-            case 'saving':
-                syncMessage.textContent = 'Saving...';
-                syncIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" class="animate-spin"/>';
-                syncIcon.className = 'w-4 h-4 mr-1 text-blue-500 animate-spin';
-                break;
-            case 'saved':
-                syncMessage.textContent = 'All changes saved';
-                syncIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>';
-                syncIcon.className = 'w-4 h-4 mr-1 text-green-500';
-                break;
-            case 'error':
-                syncMessage.textContent = 'Save failed - saved locally';
-                syncIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>';
-                syncIcon.className = 'w-4 h-4 mr-1 text-yellow-500';
-                break;
-            case 'loading':
-                syncMessage.textContent = 'Loading...';
-                syncIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" class="animate-spin"/>';
-                syncIcon.className = 'w-4 h-4 mr-1 text-blue-500 animate-spin';
-                break;
-            case 'offline':
-                syncMessage.textContent = 'Using offline data';
-                syncIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M12 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>';
-                syncIcon.className = 'w-4 h-4 mr-1 text-gray-500';
-                break;
-        }
-    }
-
-    function checkAuth() {
-        const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
-        if (!sessionData.token) {
-            window.location.href = 'login.html';
-            return;
-        }
-        
-        displayUsername();
-    }
-
-    function displayUsername() {
-        const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
-        const username = sessionData.username || 'User';
-        
-        document.getElementById('userName').textContent = username;
-        document.getElementById('userNameSidebar').textContent = username;
-    }
-
-    function logout() {
-        if (confirm('Are you sure you want to logout?')) {
-            sessionStorage.removeItem('userSession');
-            window.location.href = 'login.html';
-        }
-    }
-
-    // Event Listeners
+    // Event Listeners - Add income input listener
     document.addEventListener('DOMContentLoaded', () => {
         // Menu handlers
         const menuBtn = document.getElementById('menuBtn');
@@ -1007,11 +637,22 @@
         closeMenu.addEventListener('click', closeMenuFunction);
         overlay.addEventListener('click', closeMenuFunction);
 
+        // Add income input event listener
+        const incomeInput = document.getElementById('monthlyIncome');
+        if (incomeInput) {
+            incomeInput.addEventListener('input', () => {
+                renderSliders();
+                updateBudget();
+                syncToServer();
+            });
+        }
+
         // Initialize
         checkAuth();
         loadBudget();
         renderSliders();
     });
+
     </script>
 
 </body>

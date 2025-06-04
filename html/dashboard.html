@@ -383,6 +383,12 @@
         function loadTransactions() {
             const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
             
+            if (!sessionData.token) {
+                console.error('No auth token found');
+                displayNoTransactions();
+                return;
+            }
+            
             console.log('Loading transactions from server...');
             
             if (!navigator.onLine) {
@@ -391,15 +397,21 @@
                 return;
             }
             
+            // Clear previous error indicators
+            const existingIndicator = document.querySelector('.bg-yellow-50');
+            if (existingIndicator) existingIndicator.remove();
+            
             // LOAD FROM SERVER FIRST
             fetch('/api/transactions?limit=5', {
                 method: 'GET',
                 headers: {
+                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${sessionData.token}`
                 },
-                signal: AbortSignal.timeout(8000) // 8 second timeout
+                signal: AbortSignal.timeout(10000) // 10 second timeout
             })
             .then(response => {
+                console.log('Server response status:', response.status);
                 if (!response.ok) {
                     throw new Error(`Server error: ${response.status}`);
                 }
@@ -407,11 +419,16 @@
             })
             .then(transactions => {
                 console.log('Transactions loaded from server:', transactions);
-                displayTransactions(transactions);
-                
-                // Cache transactions locally for offline use
-                const username = sessionData.username;
-                localStorage.setItem(`dashboard_transactions_${username}`, JSON.stringify(transactions));
+                if (Array.isArray(transactions)) {
+                    displayTransactions(transactions);
+                    
+                    // Cache transactions locally for offline use
+                    const username = sessionData.username;
+                    localStorage.setItem(`dashboard_transactions_${username}`, JSON.stringify(transactions));
+                } else {
+                    console.error('Invalid transactions data format:', transactions);
+                    loadLocalTransactions();
+                }
             })
             .catch(error => {
                 console.error('Failed to load from server:', error);
