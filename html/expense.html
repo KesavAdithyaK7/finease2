@@ -449,16 +449,16 @@
     
     <script>
         let chart = null;
-        const API_URL = '/api'; // Use relative URL for deployed app
+        const API_URL = '/api';
         const categoryColors = {
-            'Food': '#f97316',       // Orange
-            'Transport': '#0ea5e9',  // Sky Blue
-            'Books': '#8b5cf6',      // Purple
-            'Entertainment': '#ec4899', // Pink
-            'Rent': '#14b8a6',       // Teal
-            'Shopping': '#f43f5e',   // Rose
-            'Income': '#22c55e',     // Green
-            'Other': '#64748b'       // Slate
+            'Food': '#f97316',
+            'Transport': '#0ea5e9',
+            'Books': '#8b5cf6',
+            'Entertainment': '#ec4899',
+            'Rent': '#14b8a6',
+            'Shopping': '#f43f5e',
+            'Income': '#22c55e',
+            'Other': '#64748b'
         };
 
         // Core Functions
@@ -719,12 +719,15 @@
             return categories;
         }
         
-        // API Calls - Fixed to use localStorage for persistence
+        // API Calls - SERVER FIRST with localStorage backup
         async function apiCall(endpoint, method = 'GET', body = null) {
+            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+            if (!sessionData.token) {
+                window.location.href = 'login.html';
+                return;
+            }
+
             try {
-                const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
-                if (!sessionData.token) throw new Error('No authentication token');
-                
                 console.log(`Making API call: ${method} ${endpoint}`);
                 
                 const response = await fetch(`${API_URL}${endpoint}`, {
@@ -737,119 +740,69 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`API call failed: ${response.status}`);
+                    throw new Error(`Server error: ${response.status}`);
                 }
 
                 const data = await response.json();
-                console.log(`API response for ${endpoint}:`, data);
+                console.log(`API success for ${endpoint}:`, data);
+                
+                // Save to localStorage as backup
+                if (method === 'POST' && endpoint === '/expense/add') {
+                    saveTransactionLocally(body);
+                }
+                
                 return data;
                 
             } catch (error) {
                 console.error(`API Error (${endpoint}):`, error);
-                
-                // Fallback to localStorage for offline functionality
-                const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
-                const username = sessionData.username;
-                
-                if (endpoint === '/expense/start' && method === 'POST') {
-                    const expenseData = {
-                        initialAmount: body.initialAmount,
-                        remainingAmount: body.initialAmount,
-                        expenses: [],
-                        userId: username,
-                        createdAt: new Date().toISOString()
-                    };
-                    localStorage.setItem(`currentExpenseSession_${username}`, JSON.stringify(expenseData));
-                    return expenseData;
-                }
-                
-                if (endpoint === '/expense/current' && method === 'GET') {
-                    const saved = localStorage.getItem(`currentExpenseSession_${username}`);
-                    if (saved) return JSON.parse(saved);
-                    throw new Error('No current expense session found');
-                }
-                
-                if (endpoint === '/expense/add' && method === 'POST') {
-                    const saved = localStorage.getItem(`currentExpenseSession_${username}`);
-                    if (!saved) throw new Error('No current expense session found');
-                    
-                    const expenseData = JSON.parse(saved);
-                    if (body.category !== 'Income' && body.amount > expenseData.remainingAmount) {
-                        throw new Error('Insufficient balance');
-                    }
-                    
-                    const newExpense = {
-                        item: body.item,
-                        amount: body.amount,
-                        category: body.category,
-                        date: new Date().toISOString()
-                    };
-                    
-                    expenseData.expenses.push(newExpense);
-                    
-                    if (body.category === 'Income') {
-                        expenseData.remainingAmount += body.amount;
-                        expenseData.initialAmount += body.amount;
-                    } else {
-                        expenseData.remainingAmount -= body.amount;
-                    }
-                    
-                    localStorage.setItem(`currentExpenseSession_${username}`, JSON.stringify(expenseData));
-                    
-                    // Store in transaction history for dashboard - USE LOCALSTORAGE
-                    const transactions = JSON.parse(localStorage.getItem(`transactions_${username}`) || '[]');
-                    transactions.unshift({
-                        item: body.item,
-                        amount: body.amount,
-                        category: body.category,
-                        date: new Date().toISOString(),
-                        description: body.item
-                    });
-                    localStorage.setItem(`transactions_${username}`, JSON.stringify(transactions));
-                    
-                    console.log('Transaction added to localStorage:', newExpense);
-                    console.log('All transactions:', transactions);
-                    
-                    return expenseData;
-                }
-                
-                if (endpoint === '/expense/finish' && method === 'DELETE') {
-                    const saved = localStorage.getItem(`currentExpenseSession_${username}`);
-                    if (!saved) throw new Error('No current expense session found');
-                    
-                    const expenseData = JSON.parse(saved);
-                    localStorage.removeItem(`currentExpenseSession_${username}`);
-                    return expenseData;
-                }
-                
+                alert('Server connection failed. Please check your internet connection and try again.');
                 throw error;
             }
         }
 
-        // Event Handlers
+        function saveTransactionLocally(transactionData) {
+            try {
+                const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+                const username = sessionData.username;
+                
+                const transactions = JSON.parse(localStorage.getItem(`transactions_backup_${username}`) || '[]');
+                transactions.unshift({
+                    item: transactionData.item,
+                    amount: transactionData.amount,
+                    category: transactionData.category,
+                    date: new Date().toISOString(),
+                    description: transactionData.item,
+                    synced: false // Mark as not synced to server
+                });
+                
+                localStorage.setItem(`transactions_backup_${username}`, JSON.stringify(transactions));
+                console.log('Transaction saved to local backup');
+            } catch (error) {
+                console.error('Error saving to local backup:', error);
+            }
+        }
+
+        // Event Handlers - All server-first
         async function handleStartTracking(e) {
             e.preventDefault();
             try {
                 const initialAmount = Number(document.getElementById('initialAmount').value);
                 
                 if (initialAmount <= 0) {
-                    alert('Please enter a valid amount greater than zero');
+                    alert('Please enter a valid amount greater than 0');
                     return;
                 }
                 
-                const data = await apiCall('/expense/start', 'POST', {
-                    initialAmount
-                });
+                const data = await apiCall('/expense/start', 'POST', { initialAmount });
                 
                 toggleSections(['addExpense', 'chartSection'], ['startTracking']);
                 updateBalance(data.remainingAmount);
                 updateChart(data);
                 updateExpenseList(data.expenses || []);
                 
-                // Reset form
                 e.target.reset();
             } catch (error) {
-                alert(error.message || 'Failed to start tracking expenses');
+                console.error('Error starting tracking:', error);
             }
         }
 
@@ -858,15 +811,15 @@
             
             try {
                 const amount = Number(document.getElementById('expenseAmount').value);
-                const item = document.getElementById('expenseItem').value;
+                const item = document.getElementById('expenseItem').value.trim();
                 const category = document.getElementById('expenseCategory').value;
                 
                 if (amount <= 0) {
-                    alert('Please enter a valid amount');
+                    alert('Please enter a valid amount greater than 0');
                     return;
                 }
                 
-                if (!item.trim()) {
+                if (!item) {
                     alert('Please enter an item description');
                     return;
                 }
@@ -876,46 +829,22 @@
                     return;
                 }
                 
+                // Check current balance first
                 const currentData = await apiCall('/expense/current', 'GET');
-                
                 if (!currentData) {
                     alert('No expense session found. Please start tracking first.');
                     return;
                 }
                 
                 const remainingBalance = currentData.remainingAmount;
-
-                // Only show deficit warning for expenses (not income)
+                
                 if (category !== 'Income' && amount > remainingBalance) {
-                    const deficit = amount - remainingBalance;
-                    
-                    // Remove any existing warning
-                    const existingWarning = document.getElementById('deficitWarning');
-                    if (existingWarning) existingWarning.remove();
-                    
-                    // Add warning message
-                    const warningDiv = document.createElement('div');
-                    warningDiv.id = 'deficitWarning';
-                    warningDiv.className = 'mt-2 p-3 bg-red-50 border border-red-200 rounded-lg';
-                    warningDiv.innerHTML = `
-                        <div class="flex items-center">
-                            <svg class="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"/>
-                            </svg>
-                            <span class="text-red-700 text-sm">
-                                Warning: This expense (₹${amount.toLocaleString('en-IN')}) exceeds your remaining balance (₹${remainingBalance.toLocaleString('en-IN')}) by ₹${deficit.toLocaleString('en-IN')}.
-                            </span>
-                        </div>
-                    `;
-                    
-                    document.getElementById('addExpenseForm').appendChild(warningDiv);
+                    if (!confirm(`This expense (₹${amount}) exceeds your remaining balance (₹${remainingBalance}). Continue anyway?`)) {
+                        return;
+                    }
                 }
 
-                const data = await apiCall('/expense/add', 'POST', { 
-                    item,
-                    amount,
-                    category
-                });
+                const data = await apiCall('/expense/add', 'POST', { item, amount, category });
                 
                 updateBalance(data.remainingAmount);
                 updateChart(data);
@@ -923,14 +852,13 @@
                 
                 // Reset form
                 e.target.reset();
-
-                // Remove warning after successful addition
+                
+                // Remove any warning messages
                 const warningDiv = document.getElementById('deficitWarning');
                 if (warningDiv) warningDiv.remove();
 
             } catch (error) {
-                console.error('Error:', error);
-                alert(error.message || 'Failed to add expense');
+                console.error('Error adding expense:', error);
             }
         }
 
@@ -944,7 +872,7 @@
                 toggleSections(['finalSummary'], ['addExpense', 'chartSection', 'expenseListContainer']);
                 showFinalSummary(data);
             } catch (error) {
-                alert(error.message || 'Failed to finish tracking');
+                console.error('Error finishing tracking:', error);
             }
         }
 
@@ -1025,7 +953,7 @@
             document.getElementById('addExpenseForm').addEventListener('submit', handleAddExpense);
             document.getElementById('finishTracking').addEventListener('click', handleFinishTracking);
 
-            // Load current tracking if exists and check auth
+            // Check auth and load current session
             checkAuth();
             displayUsername();
             
@@ -1037,9 +965,11 @@
                     updateChart(data);
                     updateExpenseList(data.expenses || []);
                 }
-            }).catch(console.error);
+            }).catch(error => {
+                console.log('No active expense session found');
+            });
         });
-        
+
         function displayUsername() {
             const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
             const username = sessionData.username;
@@ -1057,7 +987,6 @@
         
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
-                // Clear session data but keep expense/transaction data
                 sessionStorage.removeItem('userSession');
                 window.location.href = 'login.html';
             }
