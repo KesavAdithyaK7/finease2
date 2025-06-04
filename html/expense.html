@@ -333,6 +333,7 @@
                     <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 hover:bg-blue-700 font-medium transition-all rounded-lg hover:-translate-y-0.5 hover:shadow-md active:translate-y-0.5 active:shadow-none">
                         Add Transaction
                     </button>
+                </form>
             </div>
 
             <!-- Chart Section -->
@@ -771,7 +772,7 @@
             }
         }
 
-        // Event Handlers - All server-first
+        // Event Handlers - Fix the actual API calls
         async function handleStartTracking(e) {
             e.preventDefault();
             try {
@@ -809,7 +810,7 @@
                 }
                 
                 if (!item) {
-                    alert('Please enter an item description');
+                    alert('Please enter a description for this transaction');
                     return;
                 }
                 
@@ -818,19 +819,17 @@
                     return;
                 }
                 
-                // Check current balance first
                 const currentData = await apiCall('/expense/current', 'GET');
                 if (!currentData) {
-                    alert('No expense session found. Please start tracking first.');
+                    alert('No active expense session found. Please start tracking first.');
                     return;
                 }
                 
                 const remainingBalance = currentData.remainingAmount;
                 
                 if (category !== 'Income' && amount > remainingBalance) {
-                    if (!confirm(`This expense (₹${amount}) exceeds your remaining balance (₹${remainingBalance}). Continue anyway?`)) {
-                        return;
-                    }
+                    alert(`Insufficient balance! You only have ₹${remainingBalance.toLocaleString('en-IN')} remaining.`);
+                    return;
                 }
 
                 const data = await apiCall('/expense/add', 'POST', { item, amount, category });
@@ -839,12 +838,7 @@
                 updateChart(data);
                 updateExpenseList(data.expenses);
                 
-                // Reset form
                 e.target.reset();
-                
-                // Remove any warning messages
-                const warningDiv = document.getElementById('deficitWarning');
-                if (warningDiv) warningDiv.remove();
 
             } catch (error) {
                 console.error('Error adding expense:', error);
