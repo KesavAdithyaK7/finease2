@@ -507,6 +507,50 @@
             }
         }
 
+        function displayUserInfo() {
+            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+            const username = sessionData.username || 'User';
+            const email = sessionData.email || 'No email available';
+            const lastLoginTime = sessionData.loginTime;
+            
+            // Update username elements
+            const usernameElements = document.querySelectorAll('#userName, #userNameSidebar');
+            usernameElements.forEach(element => {
+                if (element) element.textContent = username;
+            });
+            
+            // Update welcome message
+            const userNameDisplay = document.getElementById('userNameDisplay');
+            if (userNameDisplay) {
+                userNameDisplay.textContent = `Welcome back, ${username}!`;
+            }
+            
+            // Update email element
+            const userEmailElement = document.getElementById('userEmail');
+            if (userEmailElement) {
+                userEmailElement.textContent = email;
+            }
+            
+            // Update last login time
+            const lastLoginElement = document.getElementById('lastLogin');
+            if (lastLoginElement && lastLoginTime) {
+                const lastLogin = new Date(lastLoginTime);
+                const now = new Date();
+                
+                const isToday = lastLogin.toDateString() === now.toDateString();
+                const options = { hour: 'numeric', minute: 'numeric', hour12: true };
+                const timeString = lastLogin.toLocaleTimeString('en-US', options);
+                
+                if (isToday) {
+                    lastLoginElement.textContent = `Today, ${timeString}`;
+                } else {
+                    const dateOptions = { month: 'short', day: 'numeric' };
+                    const dateString = lastLogin.toLocaleDateString('en-US', dateOptions);
+                    lastLoginElement.textContent = `${dateString}, ${timeString}`;
+                }
+            }
+        }
+
         // Animation for fade-in elements on scroll
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {

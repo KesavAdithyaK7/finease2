@@ -128,7 +128,6 @@ const auth = async (req, res, next) => {
 app.post('/api/budget/save', auth, async (req, res) => {
     try {
         console.log('Saving budget for user:', req.user._id);
-        console.log('Budget data received:', req.body);
         
         let budget = await Budget.findOne({ userId: req.user._id });
         
@@ -167,19 +166,15 @@ app.post('/api/budget/save', auth, async (req, res) => {
 
 app.get('/api/budget/load', auth, async (req, res) => {
     try {
-        console.log('Loading budget for user:', req.user._id);
-        
         const budget = await Budget.findOne({ userId: req.user._id });
         
         if (!budget) {
-            console.log('No budget found for user');
             return res.status(404).json({ 
                 success: false,
                 error: 'No budget found' 
             });
         }
         
-        console.log('Budget loaded successfully');
         res.json(budget);
     } catch (error) {
         console.error('Error loading budget:', error);
