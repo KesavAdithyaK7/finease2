@@ -369,6 +369,8 @@
             overlay.addEventListener('click', closeMenuFunction);
         });
 
+        // Update the checkAuth function in all pages to use sessionStorage
+
         function checkAuth() {
             const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
             if (!sessionData.token) {
@@ -376,211 +378,17 @@
                 return;
             }
             
+            // Display user info from sessionStorage
             displayUserInfo();
+            
+            // Try to load transactions
             loadTransactions();
         }
 
-        function loadTransactions() {
-            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
-            
-            if (!sessionData.token) {
-                console.error('No auth token found');
-                displayNoTransactions();
-                return;
-            }
-            
-            console.log('Loading transactions from server...');
-            
-            if (!navigator.onLine) {
-                console.log('Device is offline, loading from local storage');
-                loadLocalTransactions();
-                return;
-            }
-            
-            // Clear previous error indicators
-            const existingIndicator = document.querySelector('.bg-yellow-50');
-            if (existingIndicator) existingIndicator.remove();
-            
-            // LOAD FROM SERVER FIRST
-            fetch('/api/transactions?limit=5', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${sessionData.token}`
-                },
-                signal: AbortSignal.timeout(10000) // 10 second timeout
-            })
-            .then(response => {
-                console.log('Server response status:', response.status);
-                if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(transactions => {
-                console.log('Transactions loaded from server:', transactions);
-                if (Array.isArray(transactions)) {
-                    displayTransactions(transactions);
-                    
-                    // Cache transactions locally for offline use
-                    const username = sessionData.username;
-                    localStorage.setItem(`dashboard_transactions_${username}`, JSON.stringify(transactions));
-                } else {
-                    console.error('Invalid transactions data format:', transactions);
-                    loadLocalTransactions();
-                }
-            })
-            .catch(error => {
-                console.error('Failed to load from server:', error);
-                loadLocalTransactions();
-            });
-        }
-        
-        function loadLocalTransactions() {
-            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
-            const username = sessionData.username;
-            
-            // Try cached dashboard transactions first
-            const cachedTransactions = localStorage.getItem(`dashboard_transactions_${username}`);
-            if (cachedTransactions) {
-                displayTransactions(JSON.parse(cachedTransactions));
-                return;
-            }
-            
-            // Fallback to backup transactions
-            const backupTransactions = JSON.parse(localStorage.getItem(`transactions_backup_${username}`) || '[]');
-            
-            if (backupTransactions.length > 0) {
-                displayTransactions(backupTransactions.slice(0, 5));
-                showOfflineIndicator();
-            } else {
-                displayNoTransactions();
-            }
-        }
-        
-        function showOfflineIndicator() {
-            // Add an offline indicator to the dashboard
-            const indicator = document.createElement('div');
-            indicator.className = 'bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6';
-            indicator.innerHTML = `
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                    </svg>
-                    <p class="text-sm text-yellow-700">
-                        You're viewing offline data. Some information may not be up-to-date.
-                    </p>
-                </div>
-            `;
-            
-            const container = document.querySelector('main');
-            if (container) {
-                container.insertBefore(indicator, container.firstChild);
-            }
-        }
-
-        // Add connection event listeners
-        window.addEventListener('online', () => {
-            console.log('Connection restored, reloading data');
-            location.reload();
-        });
-        
-        window.addEventListener('offline', () => {
-            console.log('Connection lost');
-            showOfflineIndicator();
-        });
-
-        function displayTransactions(transactions) {
-            const transactionsList = document.getElementById('transactions-list');
-            
-            if (transactions.length === 0) {
-                displayNoTransactions();
-                return;
-            }
-
-            let transactionsHTML = '';
-            transactions.forEach((transaction, index) => {
-                const isLast = index === transactions.length - 1;
-                const borderClass = isLast ? '' : 'border-b border-gray-100 pb-4';
-                
-                // Determine icon and colors based on category
-                let iconClass = 'text-red-600';
-                let bgClass = 'bg-red-100';
-                let path = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />`;
-                
-                if (transaction.category === 'Income' || transaction.type === 'income') {
-                    iconClass = 'text-green-600';
-                    bgClass = 'bg-green-100';
-                    path = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />`;
-                } else if (transaction.category === 'Transport') {
-                    iconClass = 'text-blue-600';
-                    bgClass = 'bg-blue-100';
-                    path = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />`;
-                }
-                
-                // Format date
-                const transactionDate = new Date(transaction.date);
-                const dateString = transactionDate.toLocaleDateString('en-US', {
-                    month: 'short', 
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: 'numeric',
-                    hour12: true
-                });
-                
-                // Format amount
-                const isExpense = transaction.category !== 'Income' && transaction.type !== 'income';
-                const amountClass = isExpense ? 'text-red-600' : 'text-green-600';
-                const amountPrefix = isExpense ? '-' : '+';
-                const description = transaction.description || transaction.item || 'Unknown';
-                
-                // Add sync indicator for backup transactions
-                const syncIndicator = transaction.synced === false ? 
-                    '<span class="text-xs text-yellow-600">(Local)</span>' : '';
-                
-                transactionsHTML += `
-                    <div class="flex items-center justify-between ${borderClass}">
-                        <div class="flex items-center">
-                            <div class="w-10 h-10 rounded-full ${bgClass} flex items-center justify-center mr-4">
-                                <svg class="w-5 h-5 ${iconClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    ${path}
-                                </svg>
-                            </div>
-                            <div>
-                                <p class="font-medium text-gray-800">${description}</p>
-                                <p class="text-sm text-gray-500">${transaction.category} • ${dateString} ${syncIndicator}</p>
-                            </div>
-                        </div>
-                        <span class="font-medium ${amountClass}">${amountPrefix}₹${Number(transaction.amount).toLocaleString('en-IN')}</span>
-                    </div>
-                `;
-            });
-            
-            transactionsList.innerHTML = transactionsHTML;
-        }
-
-        function displayNoTransactions() {
-            const transactionsList = document.getElementById('transactions-list');
-            transactionsList.innerHTML = `
-                <div class="text-center py-8">
-                    <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <p class="text-gray-500">No transactions found</p>
-                    <a href="expense.html" class="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all">Add Your First Transaction</a>
-                </div>
-            `;
-        }
-
-        function logout() {
-            if (confirm('Are you sure you want to logout?')) {
-                sessionStorage.removeItem('userSession');
-                window.location.href = 'login.html';
-            }
-        }
+        // Use sessionStorage instead of localStorage
 
         function displayUserInfo() {
+            // Get user session data
             const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
             const username = sessionData.username || 'User';
             const email = sessionData.email || 'No email available';
@@ -604,13 +412,15 @@
                 userEmailElement.textContent = email;
             }
             
-            // Update last login time
+            // Update last login time if element exists
             const lastLoginElement = document.getElementById('lastLogin');
             if (lastLoginElement && lastLoginTime) {
                 const lastLogin = new Date(lastLoginTime);
                 const now = new Date();
                 
+                // Check if login was today
                 const isToday = lastLogin.toDateString() === now.toDateString();
+                
                 const options = { hour: 'numeric', minute: 'numeric', hour12: true };
                 const timeString = lastLogin.toLocaleTimeString('en-US', options);
                 
@@ -621,6 +431,90 @@
                     const dateString = lastLogin.toLocaleDateString('en-US', dateOptions);
                     lastLoginElement.textContent = `${dateString}, ${timeString}`;
                 }
+            }
+        }
+
+        function loadTransactions() {
+            // Get transactions from sessionStorage instead of localStorage
+            const transactions = JSON.parse(sessionStorage.getItem('transactions') || '[]');
+            const transactionsList = document.getElementById('transactions-list');
+            const transactionsContainer = document.getElementById('transactions-container');
+            
+            if (transactions.length === 0) {
+                // No transactions found
+                transactionsList.innerHTML = `
+                    <div class="text-center py-8">
+                        <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <p class="text-gray-500">No transactions found</p>
+                        <a href="expense.html" class="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all">Add Your First Transaction</a>
+                    </div>
+                `;
+            } else {
+                // Display transactions (limit to latest 3)
+                const recentTransactions = transactions.slice(0, 3);
+                
+                let transactionsHTML = '';
+                recentTransactions.forEach((transaction, index) => {
+                    const isLast = index === recentTransactions.length - 1;
+                    const borderClass = isLast ? '' : 'border-b border-gray-100 pb-4';
+                    
+                    // Determine icon based on category
+                    let iconClass = 'text-red-600';
+                    let bgClass = 'bg-red-100';
+                    let path = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />`;
+                    
+                    if (transaction.category === 'Income') {
+                        iconClass = 'text-green-600';
+                        bgClass = 'bg-green-100';
+                        path = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />`;
+                    }
+                    
+                    // Format date
+                    const transactionDate = new Date(transaction.date);
+                    const dateString = transactionDate.toLocaleDateString('en-US', {
+                        month: 'short', 
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: 'numeric',
+                        hour12: true
+                    });
+                    
+                    // Format amount (positive or negative)
+                    const isExpense = transaction.category !== 'Income';
+                    const amountClass = isExpense ? 'text-red-600' : 'text-green-600';
+                    const amountPrefix = isExpense ? '-' : '+';
+                    
+                    // Support both 'description' and 'item' field names
+                    const description = transaction.description || transaction.item || 'Unknown';
+                    
+                    transactionsHTML += `
+                        <div class="flex items-center justify-between ${borderClass}">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full ${bgClass} flex items-center justify-center mr-4">
+                                    <svg class="w-5 h-5 ${iconClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        ${path}
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-800">${description}</p>
+                                    <p class="text-sm text-gray-500">${dateString}</p>
+                                </div>
+                            </div>
+                            <span class="font-medium ${amountClass}">${amountPrefix}₹${transaction.amount}</span>
+                        </div>
+                    `;
+                });
+                
+                transactionsList.innerHTML = transactionsHTML;
+            }
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                sessionStorage.removeItem('userSession');
+                window.location.href = 'login.html';
             }
         }
 

@@ -29,32 +29,19 @@ app.use(cors(corsOptions));
 app.use(express.static(path.join(__dirname,'html')));
 
 // ===============================
-// DATABASE CONNECTION & MODELS
+// DATABASE MODELS
 // ===============================
 
-// Add retry mechanism for MongoDB connection
-function connectWithRetry() {
-    mongoose.connect(process.env.MONGODB_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
-        socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
-    }).then(() => {
-        console.log('Connected to MongoDB');
-    }).catch(err => {
-        console.error('MongoDB connection error:', err);
-        console.log('Retrying connection in 5 seconds...');
-        setTimeout(connectWithRetry, 5000);
-    });
-}
-
-// Replace current MongoDB connection with retry mechanism
-mongoose.connection.on('disconnected', () => {
-    console.log('MongoDB disconnected! Reconnecting...');
-    connectWithRetry();
+// MongoDB Connection
+mongoose.connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+}).then(() => {
+    console.log('Connected to MongoDB successfully');
+}).catch((err) => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
 });
-
-connectWithRetry();
 
 // User Schema 
 const userSchema = new mongoose.Schema({
@@ -64,10 +51,81 @@ const userSchema = new mongoose.Schema({
     surveyCompleted: { type: Boolean, default: false },
 });
 
-// Budget schema
+// Expense schema
+const expenseTrackingSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'User'
+    },
+    initialAmount: {
+        type: Number,
+        required: true
+    },
+    remainingAmount: {
+        type: Number,
+        required: true
+    },
+    expenses: [{
+        item: {
+            type: String,
+            required: true
+        },
+        amount: {
+            type: Number,
+            required: true
+        },
+        date: {
+            type: Date,
+            default: Date.now
+        }
+    }]
+});
+
+// Survey Schema
+const surveySchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'User'
+    },
+    ageGroup: {
+        type: String,
+        required: true
+    },
+    incomeRange: {
+        type: String,
+        required: true
+    },
+    savings: {
+        type: Number,
+        required: true
+    },
+    primaryGoal: {
+        type: String,
+        required: true
+    },
+    experience: {
+        type: String,
+        required: true
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
+});
+
+// Budget Schema
 const budgetSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    income: { type: Number, required: true },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'User'
+    },
+    income: {
+        type: Number,
+        required: true
+    },
     customCategories: [{
         id: String,
         name: String,
@@ -78,325 +136,336 @@ const budgetSchema = new mongoose.Schema({
         id: String,
         percent: Number
     }],
-    lastUpdated: { type: Date, default: Date.now }
-});
-
-// Expense schema
-const expenseSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    initialAmount: { type: Number, required: true },
-    remainingAmount: { type: Number, required: true },
-    expenses: [{
-        item: String,
-        amount: Number,
-        category: String,
-        date: { type: Date, default: Date.now }
-    }],
-    isActive: { type: Boolean, default: true },
-    createdAt: { type: Date, default: Date.now },
-    finishedAt: { type: Date }
-});
-
-// Transaction schema
-const transactionSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    description: { type: String, required: true },
-    amount: { type: Number, required: true },
-    category: { type: String, required: true },
-    type: { type: String, enum: ['expense', 'income'], default: 'expense' },
-    date: { type: Date, default: Date.now }
-});
-
-const User = mongoose.model('User', userSchema);
-const Budget = mongoose.model('Budget', budgetSchema);
-const ExpenseSession = mongoose.model('ExpenseSession', expenseSchema);
-const Transaction = mongoose.model('Transaction', transactionSchema);
-
-// ===============================
-// MIDDLEWARE
-// ===============================
-
-// JWT Authentication Middleware
-function authenticateToken(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-        return res.status(401).json({ error: 'Access token required' });
+    lastUpdated: {
+        type: Date,
+        default: Date.now
     }
+});
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-        if (err) {
-            return res.status(403).json({ error: 'Invalid or expired token' });
+// Initialize Models
+const User = mongoose.model('User', userSchema);
+const ExpenseTracking = mongoose.model('ExpenseTracking', expenseTrackingSchema);
+const Budget = mongoose.model('Budget', budgetSchema);
+const Survey = mongoose.model('Survey', surveySchema);
+
+// ===============================
+// AUTHENTICATION MIDDLEWARE
+// ===============================
+const auth = async (req, res, next) => {
+    try {
+        const token = req.header('Authorization').replace('Bearer ', '');
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
+        const user = await User.findOne({ _id: decoded._id });
+        
+        if (!user) {
+            throw new Error();
         }
+
         req.user = user;
         next();
-    });
-}
+    } catch (e) {
+        res.status(401).send({ error: 'Please authenticate' });
+    }
+};
 
 // ===============================
-// ROUTES
+// API ROUTES
 // ===============================
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// User Registration
-app.post('/api/register', async (req, res) => {
+// Authentication Routes
+app.post('/api/signup', async (req, res) => {
     try {
-        const { email, password, name } = req.body;
-        
-        if (!email || !password || !name) {
-            return res.status(400).json({ error: 'All fields are required' });
-        }
-
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ error: 'User already exists' });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ email, password: hashedPassword, name });
+        const { name, email, password } = req.body;
+        const user = new User({ name, email, password: await bcrypt.hash(password, 8) });
         await user.save();
-
-        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
         
-        res.status(201).json({
-            token,
-            user: { id: user._id, email: user.email, name: user.name }
+        const token = jwt.sign(
+            { _id: user._id }, 
+            process.env.JWT_SECRET || 'your_jwt_secret',
+            { expiresIn: '7d' }
+        );
+
+        res.status(201).send({
+            user: { id: user._id, name: user.name, email: user.email }, 
+            token 
         });
-    } catch (error) {
-        console.error('Registration error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+    } catch (e) {
+        res.status(400).send({ error: e.message });
     }
 });
 
-// User Login
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        
         if (!email || !password) {
-            return res.status(400).json({ error: 'Email and password are required' });
+            return res.status(400).send({ error: 'Email and password are required' });
         }
 
         const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(400).json({ error: 'Invalid credentials' });
+        if (!user || !(await bcrypt.compare(password, user.password))) {
+            return res.status(401).send({ error: 'Invalid login credentials' });
         }
 
-        const isValidPassword = await bcrypt.compare(password, user.password);
-        if (!isValidPassword) {
-            return res.status(400).json({ error: 'Invalid credentials' });
-        }
+        const token = jwt.sign(
+            { _id: user._id }, 
+            process.env.JWT_SECRET || 'your_jwt_secret',
+            { expiresIn: '7d' }
+        );
 
-        const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '24h' });
-        
-        res.json({
-            token,
-            user: { id: user._id, email: user.email, name: user.name }
+        res.send({ 
+            user: { 
+                id: user._id, 
+                name: user.name, 
+                email: user.email,
+                surveyCompleted: user.surveyCompleted
+            }, 
+            token 
         });
+    } catch (e) {
+        res.status(400).send({ error: e.message });
+    }
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: 'ok', message: 'Server is running' });
+});
+
+// Survey Routes
+app.post('/api/survey', auth, async (req, res) => {
+    try {
+        // Validate required fields
+        const requiredFields = ['ageGroup', 'incomeRange', 'savings', 'primaryGoal', 'experience'];
+        const missingFields = requiredFields.filter(field => !req.body[field]);
+        
+        if (missingFields.length > 0) {
+            return res.status(400).json({
+                error: `Missing required fields: ${missingFields.join(', ')}`
+            });
+        }
+
+        const survey = new Survey({
+            userId: req.user._id,
+            ageGroup: req.body.ageGroup,
+            incomeRange: req.body.incomeRange,
+            savings: Number(req.body.savings),
+            primaryGoal: req.body.primaryGoal,
+            experience: req.body.experience
+        });
+
+        await survey.save();
+
+        res.status(201).json({
+            success: true,
+            message: 'Survey submitted successfully'
+        });
+
     } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({
+            error: error.message || 'Failed to save survey'
+        });
+    }
+});
+
+app.post('/api/user/survey-completed', auth, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        user.surveyCompleted = true;
+        await user.save();
+        res.json({ message: 'Survey status updated' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
 // Budget Routes
-app.post('/api/budget/save', authenticateToken, async (req, res) => {
+app.post('/api/budget/save', auth, async (req, res) => {
     try {
-        const { income, customCategories, allocations } = req.body;
-        
-        const budgetData = {
-            userId: req.user.userId,
-            income: parseFloat(income) || 0,
-            customCategories: customCategories || [],
-            allocations: allocations || [],
-            lastUpdated: new Date()
-        };
-
-        const budget = await Budget.findOneAndUpdate(
-            { userId: req.user.userId },
-            budgetData,
-            { upsert: true, new: true }
-        );
-
-        res.json({ success: true, budget, lastUpdated: budget.lastUpdated });
+        let budget = await Budget.findOne({ userId: req.user._id });
+        if (!budget) {
+            budget = new Budget({ userId: req.user._id, ...req.body });
+        } else {
+            budget.income = req.body.income;
+            budget.customCategories = req.body.customCategories;
+            budget.allocations = req.body.allocations;
+            budget.lastUpdated = new Date();
+        }
+        await budget.save();
+        res.json(budget);
     } catch (error) {
-        console.error('Budget save error:', error);
-        res.status(500).json({ error: 'Failed to save budget' });
+        res.status(500).json({ error: error.message });
     }
 });
 
-app.get('/api/budget/load', authenticateToken, async (req, res) => {
+app.get('/api/budget/load', auth, async (req, res) => {
     try {
-        const budget = await Budget.findOne({ userId: req.user.userId });
-        
+        const budget = await Budget.findOne({ userId: req.user._id });
         if (!budget) {
             return res.status(404).json({ error: 'No budget found' });
         }
-
         res.json(budget);
     } catch (error) {
-        console.error('Budget load error:', error);
-        res.status(500).json({ error: 'Failed to load budget' });
+        res.status(500).json({ error: error.message });
     }
 });
 
-// Expense Tracking Routes
-app.post('/api/expense/start', authenticateToken, async (req, res) => {
+// Expense Routes
+app.post('/api/expense/start', auth, async (req, res) => {
     try {
-        const { initialAmount } = req.body;
-        
-        if (!initialAmount || initialAmount <= 0) {
-            return res.status(400).json({ error: 'Valid initial amount required' });
-        }
-
-        // End any existing active sessions
-        await ExpenseSession.updateMany(
-            { userId: req.user.userId, isActive: true },
-            { isActive: false, finishedAt: new Date() }
-        );
-
-        const expenseSession = new ExpenseSession({
-            userId: req.user.userId,
-            initialAmount: parseFloat(initialAmount),
-            remainingAmount: parseFloat(initialAmount),
+        const expenseTracking = new ExpenseTracking({
+            userId: req.user._id,
+            initialAmount: req.body.initialAmount,
+            remainingAmount: req.body.initialAmount,
             expenses: []
         });
-
-        await expenseSession.save();
-        res.json(expenseSession);
-    } catch (error) {
-        console.error('Start expense tracking error:', error);
-        res.status(500).json({ error: 'Failed to start expense tracking' });
+        await expenseTracking.save();
+        res.status(201).send(expenseTracking);
+    } catch (e) {
+        res.status(400).send({ error: e.message });
     }
 });
 
-app.get('/api/expense/current', authenticateToken, async (req, res) => {
+app.post('/api/expense/add', auth, async (req, res) => {
     try {
-        const expenseSession = await ExpenseSession.findOne({
-            userId: req.user.userId,
-            isActive: true
-        }).sort({ createdAt: -1 });
-
-        if (!expenseSession) {
-            return res.status(404).json({ error: 'No active expense session' });
-        }
-
-        res.json(expenseSession);
-    } catch (error) {
-        console.error('Get current expense error:', error);
-        res.status(500).json({ error: 'Failed to get current expense session' });
-    }
-});
-
-app.post('/api/expense/add', authenticateToken, async (req, res) => {
-    try {
-        const { item, amount, category } = req.body;
+        const { item, amount } = req.body;
         
-        if (!item || !amount || !category) {
-            return res.status(400).json({ error: 'Item, amount, and category are required' });
+        const expenseTracking = await ExpenseTracking.findOne({ userId: req.user._id });
+        if (!expenseTracking) {
+            return res.status(404).send({ error: 'No active expense tracking found' });
         }
 
-        const expenseSession = await ExpenseSession.findOne({
-            userId: req.user.userId,
-            isActive: true
-        });
-
-        if (!expenseSession) {
-            return res.status(404).json({ error: 'No active expense session' });
+        if (amount > expenseTracking.remainingAmount) {
+            return res.status(400).send({ error: 'Insufficient balance' });
         }
 
-        const expenseAmount = parseFloat(amount);
+        expenseTracking.expenses.push({ item, amount });
+        expenseTracking.remainingAmount -= amount;
+        await expenseTracking.save();
         
-        // Update remaining amount based on category
-        let newRemainingAmount = expenseSession.remainingAmount;
-        if (category === 'Income') {
-            newRemainingAmount += expenseAmount;
-        } else {
-            newRemainingAmount -= expenseAmount;
-        }
-
-        // Add expense to session
-        expenseSession.expenses.push({
-            item,
-            amount: expenseAmount,
-            category,
-            date: new Date()
-        });
-        expenseSession.remainingAmount = newRemainingAmount;
-
-        await expenseSession.save();
-
-        // Also save to transactions for dashboard
-        const transaction = new Transaction({
-            userId: req.user.userId,
-            description: item,
-            amount: expenseAmount,
-            category,
-            type: category === 'Income' ? 'income' : 'expense'
-        });
-        await transaction.save();
-
-        res.json(expenseSession);
-    } catch (error) {
-        console.error('Add expense error:', error);
-        res.status(500).json({ error: 'Failed to add expense' });
+        res.send(expenseTracking);
+    } catch (e) {
+        res.status(400).send({ error: e.message });
     }
 });
 
-app.delete('/api/expense/finish', authenticateToken, async (req, res) => {
+app.get('/api/expense/current', auth, async (req, res) => {
     try {
-        const expenseSession = await ExpenseSession.findOneAndUpdate(
-            { userId: req.user.userId, isActive: true },
-            { isActive: false, finishedAt: new Date() },
-            { new: true }
-        );
-
-        if (!expenseSession) {
-            return res.status(404).json({ error: 'No active expense session' });
+        const expenseTracking = await ExpenseTracking.findOne({ userId: req.user._id });
+        if (!expenseTracking) {
+            return res.status(404).send({ error: 'No expense tracking found' });
         }
-
-        res.json(expenseSession);
-    } catch (error) {
-        console.error('Finish expense tracking error:', error);
-        res.status(500).json({ error: 'Failed to finish expense tracking' });
+        res.send(expenseTracking);
+    } catch (e) {
+        res.status(500).send({ error: e.message });
     }
 });
 
-// Transaction Routes
-app.get('/api/transactions', authenticateToken, async (req, res) => {
+app.delete('/api/expense/finish', auth, async (req, res) => {
     try {
-        const limit = parseInt(req.query.limit) || 10;
-        const transactions = await Transaction.find({ userId: req.user.userId })
-            .sort({ date: -1 })
-            .limit(limit);
-
-        res.json(transactions);
-    } catch (error) {
-        console.error('Get transactions error:', error);
-        res.status(500).json({ error: 'Failed to get transactions' });
+        const expenseTracking = await ExpenseTracking.findOneAndDelete({ userId: req.user._id });
+        if (!expenseTracking) {
+            return res.status(404).send({ error: 'No expense tracking found' });
+        }
+        res.send(expenseTracking);
+    } catch (e) {
+        res.status(500).send({ error: e.message });
     }
 });
 
-// Catch-all route for SPA
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'html', 'index.html'));
+// Recommendation Routes
+app.get('/api/recommendations/:id', async (req, res) => {
+    try {
+        const userSurvey = await Survey.findById(req.params.id);
+        
+        // Find similar profiles
+        const similarProfiles = await Survey.find({
+            ageGroup: userSurvey.ageGroup,
+            incomeRange: userSurvey.incomeRange,
+            savings: { $gte: userSurvey.savings - 10, $lte: userSurvey.savings + 10 }
+        }).limit(10);
+
+        // Generate recommendations
+        const recommendations = generateRecommendations(userSurvey, similarProfiles);
+        
+        res.json(recommendations);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
-// Enhance error handling middleware
+// ===============================
+// HELPER FUNCTIONS
+// ===============================
+function generateRecommendations(userSurvey, similarProfiles) {
+    // Calculate average savings
+    const avgSavings = similarProfiles.reduce((sum, profile) => sum + profile.savings, 0) / similarProfiles.length;
+
+    // Generate personalized recommendations
+    const recommendations = {
+        budgetPlan: {},
+        suggestions: []
+    };
+
+    // Basic budget allocation based on income range
+    switch(userSurvey.incomeRange) {
+        case '0-25000':
+            recommendations.budgetPlan = {
+                necessities: 60,
+                savings: 20,
+                discretionary: 20
+            };
+            break;
+        case '25001-50000':
+            recommendations.budgetPlan = {
+                necessities: 50,
+                savings: 30,
+                discretionary: 20
+            };
+            break;
+        default:
+            recommendations.budgetPlan = {
+                necessities: 40,
+                savings: 40,
+                discretionary: 20
+            };
+    }
+
+    // Add personalized suggestions
+    if (userSurvey.savings < avgSavings) {
+        recommendations.suggestions.push('Consider increasing your savings rate to match peers in your income group');
+    }
+
+    // Fixed: Changed userSurvey.goals to userSurvey.primaryGoal to match schema
+    if (userSurvey.primaryGoal === 'emergency') {
+        recommendations.suggestions.push('Aim to save 6 months of expenses for emergency fund');
+    }
+
+    return recommendations;
+}
+
+// ===============================
+// ERROR HANDLING
+// ===============================
 app.use((err, req, res, next) => {
     console.error('Server error:', err);
-    res.status(err.status || 500).json({
+    res.status(500).json({
         success: false,
-        error: process.env.NODE_ENV === 'production' ? 'Server error' : err.message
+        error: 'Internal server error'
     });
 });
 
+// ===============================
+// SERVE FRONTEND
+// ===============================
+// Serve index.html for any request that doesn't match an API route
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'html', 'index.html'));
+});
+
+// ===============================
+// START SERVER
+// ===============================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });
