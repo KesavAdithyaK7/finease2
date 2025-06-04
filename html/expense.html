@@ -616,8 +616,7 @@
                     datasets: [{
                         data: values,
                         backgroundColor: colors,
-                        borderWidth: 1,
-                        borderColor: '#ffffff',
+                        borderWidth: 0,
                         hoverOffset: 5
                     }]
                 },
@@ -637,50 +636,16 @@
                     legend: {
                         position: isMobile ? 'bottom' : 'right',
                         labels: {
-                            usePointStyle: true,
-                            padding: isMobile ? 10 : 15,
-                            boxWidth: isMobile ? 8 : 10,
-                            font: {
-                                family: 'Inter',
-                                size: isMobile ? 9 : 11
-                            },
-                            generateLabels: function(chart) {
-                                const data = chart.data;
-                                if (data.labels.length && data.datasets.length) {
-                                    return data.labels.map((label, i) => {
-                                        const meta = chart.getDatasetMeta(0);
-                                        const ds = data.datasets[0];
-                                        const value = ds.data[i];
-                                        const total = ds.data.reduce((acc, val) => acc + val, 0);
-                                        const percentage = Math.round((value / total) * 100);
-                                        
-                                        // Shorter label text for mobile
-                                        const text = isMobile ? 
-                                            `${label}: ${percentage}%` : 
-                                            `${label}: ${displayAmount(value)} (${percentage}%)`;
-                                        
-                                        return {
-                                            text: text,
-                                            fillStyle: ds.backgroundColor[i],
-                                            strokeStyle: ds.backgroundColor[i],
-                                            lineWidth: 0,
-                                            hidden: isNaN(ds.data[i]) || meta.data[i].hidden,
-                                            index: i
-                                        };
-                                    });
-                                }
-                                return [];
-                            }
+                            padding: 10,
+                            usePointStyle: true
                         }
                     },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
                                 const label = context.label || '';
-                                const value = context.parsed || 0;
-                                const total = context.dataset.data.reduce((acc, data) => acc + data, 0);
-                                const percentage = ((value * 100) / total).toFixed(1);
-                                return `${label}: ${displayAmount(value)} (${percentage}%)`;
+                                const value = context.raw || 0;
+                                return `${label}: ₹${value.toLocaleString('en-IN')}`;
                             }
                         }
                     }
@@ -709,7 +674,7 @@
             return categories;
         }
         
-        // API Calls - SERVER FIRST with localStorage backup
+        // API Calls - Fix the actual function
         async function apiCall(endpoint, method = 'GET', body = null) {
             const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
             if (!sessionData.token) {
@@ -728,274 +693,4 @@
                     }
                 };
 
-                if (body) {
-                    options.body = JSON.stringify(body);
-                }
-
-                const response = await fetch(`${API_URL}${endpoint}`, options);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log(`API success for ${endpoint}:`, data);
-                
-                // Remove any connection error messages if request succeeds
-                const errorEl = document.getElementById('connectionError');
-                if (errorEl) errorEl.remove();
-                
-                return data;
-                
-            } catch (error) {
-                console.error(`API Error (${endpoint}):`, error);
-                
-                // Show a less intrusive error message
-                showConnectionError('Connection issue detected. Working offline.');
-                
-                throw error;
-            }
-        }
-
-        function showConnectionError(message) {
-            // Remove existing error message
-            const existingError = document.getElementById('connectionError');
-            if (existingError) existingError.remove();
-            
-            // Show a small, non-intrusive banner instead of alert
-            const errorDiv = document.createElement('div');
-            errorDiv.id = 'connectionError';
-            errorDiv.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-2 rounded-lg shadow-lg z-50';
-            errorDiv.innerHTML = `
-                <div class="flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                    </svg>
-                    <span>${message}</span>
-                    <button onclick="this.parentElement.parentElement.remove()" class="ml-3 text-yellow-600 hover:text-yellow-800">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-            `;
-            
-            document.body.appendChild(errorDiv);
-            
-            // Auto-remove after 5 seconds
-            setTimeout(() => {
-                if (errorDiv.parentElement) {
-                    errorDiv.remove();
-                }
-            }, 5000);
-        }
-
-        // Event Handlers - Fix the actual API calls
-        async function handleStartTracking(e) {
-            e.preventDefault();
-            try {
-                const initialAmount = Number(document.getElementById('initialAmount').value);
-                
-                if (initialAmount <= 0) {
-                    alert('Please enter a valid amount greater than 0');
-                    return;
-                }
-                
-                const data = await apiCall('/expense/start', 'POST', { initialAmount });
-                
-                toggleSections(['addExpense', 'chartSection'], ['startTracking']);
-                updateBalance(data.remainingAmount);
-                updateChart(data);
-                updateExpenseList(data.expenses || []);
-                
-                e.target.reset();
-            } catch (error) {
-                console.error('Error starting tracking:', error);
-                // Don't show alert here, the apiCall function already handled the error display
-            }
-        }
-
-        async function handleAddExpense(e) {
-            e.preventDefault();
-            
-            try {
-                const amount = Number(document.getElementById('expenseAmount').value);
-                const item = document.getElementById('expenseItem').value.trim();
-                const category = document.getElementById('expenseCategory').value;
-                
-                if (amount <= 0) {
-                    alert('Please enter a valid amount greater than 0');
-                    return;
-                }
-                
-                if (!item) {
-                    alert('Please enter a description for this transaction');
-                    return;
-                }
-                
-                if (!category) {
-                    alert('Please select a category');
-                    return;
-                }
-                
-                const currentData = await apiCall('/expense/current', 'GET');
-                if (!currentData) {
-                    alert('No active expense session found. Please start tracking first.');
-                    return;
-                }
-                
-                const remainingBalance = currentData.remainingAmount;
-                
-                if (category !== 'Income' && amount > remainingBalance) {
-                    alert(`Insufficient balance! You only have ₹${remainingBalance.toLocaleString('en-IN')} remaining.`);
-                    return;
-                }
-
-                const data = await apiCall('/expense/add', 'POST', { item, amount, category });
-                
-                updateBalance(data.remainingAmount);
-                updateChart(data);
-                updateExpenseList(data.expenses);
-                
-                e.target.reset();
-
-            } catch (error) {
-                console.error('Error adding expense:', error);
-                // Don't show alert here, let the user continue working
-            }
-        }
-
-        async function handleFinishTracking() {
-            if (!confirm('Are you sure you want to finish tracking? This will end your current session.')) {
-                return;
-            }
-            
-            try {
-                const data = await apiCall('/expense/finish', 'DELETE');
-                toggleSections(['finalSummary'], ['addExpense', 'chartSection', 'expenseListContainer']);
-                showFinalSummary(data);
-            } catch (error) {
-                console.error('Error finishing tracking:', error);
-                // Don't show alert here
-            }
-        }
-
-        function showFinalSummary(data) {
-            const spent = data.initialAmount - data.remainingAmount;
-            
-            document.getElementById('summaryInitial').textContent = displayAmount(data.initialAmount);
-            document.getElementById('summarySpent').textContent = displayAmount(spent);
-            document.getElementById('summarySaved').textContent = displayAmount(data.remainingAmount);
-            
-            // Group expenses by category
-            const expensesByCategory = data.expenses.reduce((acc, exp) => {
-                const category = exp.category || 'Other';
-                acc[category] = (acc[category] || 0) + exp.amount;
-                return acc;
-            }, {});
-            
-            // Create final expense list with category breakdown
-            const finalExpenseList = document.getElementById('finalExpenseList');
-            finalExpenseList.innerHTML = '';
-            
-            // Sort categories by amount (descending)
-            const sortedCategories = Object.entries(expensesByCategory)
-                .sort((a, b) => b[1] - a[1]);
-                
-            sortedCategories.forEach(([category, amount]) => {
-                const colorHex = getColorForCategory(category);
-                const isIncome = category === 'Income';
-                const amountColor = isIncome ? 'text-green-600' : 'text-red-600';
-                const amountPrefix = isIncome ? '+' : '-';
-                
-                const categoryItem = document.createElement('div');
-                categoryItem.className = 'flex justify-between items-center p-3 bg-white border-l-4';
-                categoryItem.style.borderLeftColor = colorHex;
-                categoryItem.innerHTML = `
-                    <div class="flex items-center">
-                        <span class="font-medium">${category}</span>
-                    </div>
-                    <span class="font-semibold ${amountColor}">${amountPrefix}${displayAmount(amount)}</span>
-                `;
-                
-                finalExpenseList.appendChild(categoryItem);
-            });
-            
-            // If no expenses
-            if (sortedCategories.length === 0) {
-                finalExpenseList.innerHTML = `
-                    <div class="text-center py-4 text-gray-500">
-                        No expenses recorded
-                    </div>
-                `;
-            }
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            // Menu handlers
-            const menuBtn = document.getElementById('menuBtn');
-            const closeMenu = document.getElementById('closeMenu');
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('overlay');
-
-            menuBtn.addEventListener('click', () => {
-                sidebar.classList.add('active');
-                overlay.classList.add('active');
-            }); 
-
-            const closeMenuFunction = () => {
-                sidebar.classList.remove('active');
-                overlay.classList.remove('active');
-            };
-
-            closeMenu.addEventListener('click', closeMenuFunction);
-            overlay.addEventListener('click', closeMenuFunction);
-
-            // Form handlers
-            document.getElementById('startTrackingForm').addEventListener('submit', handleStartTracking);
-            document.getElementById('addExpenseForm').addEventListener('submit', handleAddExpense);
-            document.getElementById('finishTracking').addEventListener('click', handleFinishTracking);
-
-            // Check auth and load current session
-            checkAuth();
-            displayUsername();
-            
-            // Try to load current expense tracking session
-            apiCall('/expense/current').then(data => {
-                if (data) {
-                    toggleSections(['addExpense', 'chartSection', 'expenseListContainer'], ['startTracking']);
-                    updateBalance(data.remainingAmount);
-                    updateChart(data);
-                    updateExpenseList(data.expenses || []);
-                }
-            }).catch(error => {
-                console.log('No active expense session found');
-                // This is normal - don't show any error message
-            });
-        });
-
-        function displayUsername() {
-            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
-            const username = sessionData.username;
-            const email = sessionData.email;
-            
-            if (username) {
-                document.getElementById('userName').textContent = username;
-                document.getElementById('userNameSidebar').textContent = username;
-            }
-            
-            if (email) {
-                document.getElementById('userEmail').textContent = email;
-            }
-        }
-        
-        function logout() {
-            if (confirm('Are you sure you want to logout?')) {
-                sessionStorage.removeItem('userSession');
-                window.location.href = 'login.html';
-            }
-        }
-    </script>
-</body>
-</html>
+                if
