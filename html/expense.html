@@ -719,68 +719,14 @@
             return categories;
         }
         
-        // API Calls
+        // API Calls - Update to use real server endpoints
         async function apiCall(endpoint, method = 'GET', body = null) {
             try {
                 const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
                 if (!sessionData.token) throw new Error('No authentication token');
                 
-                // For demo purposes, store expense data in sessionStorage
-                if (endpoint === '/expense/start' && method === 'POST') {
-                    const data = {
-                        initialAmount: body.initialAmount,
-                        remainingAmount: body.initialAmount,
-                        expenses: []
-                    };
-                    sessionStorage.setItem('expenseData', JSON.stringify(data));
-                    return data;
-                }
+                console.log(`Making API call: ${method} ${endpoint}`);
                 
-                if (endpoint === '/expense/current' && method === 'GET') {
-                    return JSON.parse(sessionStorage.getItem('expenseData') || 'null');
-                }
-                
-                if (endpoint === '/expense/add' && method === 'POST') {
-                    const data = JSON.parse(sessionStorage.getItem('expenseData') || '{}');
-                    const newExpense = {
-                        item: body.item,
-                        amount: body.amount,
-                        category: body.category || 'Other',
-                        date: new Date().toISOString()
-                    };
-                    
-                    // Update remaining amount
-                    if (body.category === 'Income') {
-                        data.remainingAmount += body.amount;
-                    } else {
-                        data.remainingAmount -= body.amount;
-                    }
-                    
-                    data.expenses = [...(data.expenses || []), newExpense];
-                    sessionStorage.setItem('expenseData', JSON.stringify(data));
-                    
-                    // Store transactions for dashboard
-                    const transactions = JSON.parse(sessionStorage.getItem('transactions') || '[]');
-                    transactions.unshift({
-                        description: body.item,
-                        amount: body.amount,
-                        category: body.category || 'Other',
-                        date: new Date().toISOString()
-                    });
-                    sessionStorage.setItem('transactions', JSON.stringify(transactions.slice(0, 10)));
-                    
-                    return data;
-                }
-                
-                if (endpoint === '/expense/finish' && method === 'DELETE') {
-                    const data = JSON.parse(sessionStorage.getItem('expenseData') || '{}');
-                    sessionStorage.removeItem('expenseData');
-                    // Clear transactions when finishing tracking
-                    sessionStorage.removeItem('transactions');
-                    return data;
-                }
-                
-                // Real API fallback
                 const response = await fetch(`${API_URL}${endpoint}`, {
                     method,
                     headers: {
@@ -791,13 +737,76 @@
                 });
 
                 if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'API call failed');
+                    throw new Error(`API call failed: ${response.status}`);
                 }
 
-                return await response.json();
+                const data = await response.json();
+                console.log(`API response for ${endpoint}:`, data);
+                return data;
+                
             } catch (error) {
                 console.error(`API Error (${endpoint}):`, error);
+                
+                // Fallback to localStorage for offline functionality
+                if (endpoint === '/expense/start' && method === 'POST') {
+                    const expenseData = {
+                        initialAmount: body.initialAmount,
+                        remainingAmount: body.initialAmount,
+                        expenses: [],
+                        userId: sessionData.username,
+                        createdAt: new Date().toISOString()
+                    };
+                    localStorage.setItem(`currentExpenseSession_${sessionData.username}`, JSON.stringify(expenseData));
+                    return expenseData;
+                }
+                
+                if (endpoint === '/expense/current' && method === 'GET') {
+                    const saved = localStorage.getItem(`currentExpenseSession_${sessionData.username}`);
+                    if (saved) return JSON.parse(saved);
+                    throw new Error('No current expense session found');
+                }
+                
+                if (endpoint === '/expense/add' && method === 'POST') {
+                    const saved = localStorage.getItem(`currentExpenseSession_${sessionData.username}`);
+                    if (!saved) throw new Error('No current expense session found');
+                    
+                    const expenseData = JSON.parse(saved);
+                    if (body.amount > expenseData.remainingAmount) {
+                        throw new Error('Insufficient balance');
+                    }
+                    
+                    expenseData.expenses.push({
+                        item: body.item,
+                        amount: body.amount,
+                        category: body.category,
+                        date: new Date().toISOString()
+                    });
+                    expenseData.remainingAmount -= body.amount;
+                    
+                    localStorage.setItem(`currentExpenseSession_${sessionData.username}`, JSON.stringify(expenseData));
+                    
+                    // Store in transaction history
+                    const transactions = JSON.parse(localStorage.getItem(`transactions_${sessionData.username}`) || '[]');
+                    transactions.unshift({
+                        item: body.item,
+                        amount: body.amount,
+                        category: body.category,
+                        date: new Date().toISOString()
+                    });
+                    localStorage.setItem(`transactions_${sessionData.username}`, JSON.stringify(transactions));
+                    
+                    return expenseData;
+                }
+                
+                if (endpoint === '/expense/finish' && method === 'DELETE') {
+                    const saved = localStorage.getItem(`currentExpenseSession_${sessionData.username}`);
+                    if (!saved) throw new Error('No current expense session found');
+                    
+                    const expenseData = JSON.parse(saved);
+                    localStorage.removeItem(`currentExpenseSession_${sessionData.username}`);
+                    return expenseData;
+                }
+                
                 throw error;
             }
         }

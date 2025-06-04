@@ -18,8 +18,8 @@
                     colors: {
                         blue: {
                             100: '#EBF5FF',
-                            600: '#2563EB',
-                            700: '#1D4ED8'
+                            600: '#3B82F6',
+                            700: '#2563EB'
                         }
                     }
                 }
@@ -58,85 +58,19 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
-        /* Enhanced mobile optimizations */
+        /* Efficient space usage */
         @media (max-width: 768px) {
-            /* Better touch targets */
-            input, select, button, a.button {
-                min-height: 44px !important;
-                font-size: 16px !important; /* Prevent iOS zoom */
-            }
-            
-            /* Optimize container spacing */
             .container {
-                padding-left: 0.75rem !important;
-                padding-right: 0.75rem !important;
+                padding-left: 1rem;
+                padding-right: 1rem;
             }
             
-            /* Adjust card spacing */
             .budget-card {
-                padding: 1rem !important;
+                padding: 1rem;
             }
             
-            /* More compact grids */
             .grid {
-                gap: 0.75rem !important;
-            }
-            
-            /* Fix sidebar width on mobile */
-            .sidebar {
-                width: 85% !important;
-                max-width: 320px;
-            }
-            
-            /* Better chart display */
-            .h-64 {
-                height: 220px !important;
-            }
-            
-            /* Adjust spacing for icons */
-            .svg-inline--fa {
-                width: 1em !important;
-                height: 1em !important;
-            }
-            
-            /* Better text sizing */
-            h2 {
-                font-size: 1.25rem !important;
-            }
-            
-            h3 {
-                font-size: 1.125rem !important;
-            }
-            
-            /* Better modal on mobile */
-            #categoryModal .max-w-md {
-                width: 90% !important;
-                margin: 0 auto;
-            }
-            
-            /* Make range sliders easier to use */
-            input[type="range"] {
-                height: 10px !important;
-            }
-            
-            input[type="range"]::-webkit-slider-thumb {
-                width: 22px !important;
-                height: 22px !important;
-            }
-            
-            /* Fix chart overflow */
-            canvas {
-                max-width: 100% !important;
-            }
-            
-            /* Better spacing for stat cards */
-            .stat-card {
-                padding: 0.75rem !important;
-            }
-            
-            /* Adjust modal padding */
-            .p-6 {
-                padding: 1.25rem !important;
+                gap: 1rem;
             }
         }
 
@@ -240,7 +174,7 @@
     </style>
 </head>
 <body class="bg-blue-100 font-sans">
-    <nav class="bg-blue-600 shadow fixed w-full top-0 z-30">
+    <nav class="bg-blue-600 shadow-md fixed w-full top-0 z-30">
         <div class="container mx-auto px-4">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center">
@@ -830,7 +764,10 @@
         updateSyncStatus('saving');
         
         const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
-        if (!sessionData.token) return;
+        if (!sessionData.token) {
+            updateSyncStatus('error');
+            return;
+        }
 
         const budgetData = {
             income: document.getElementById('monthlyIncome').value,
@@ -838,26 +775,21 @@
             allocations: [...categories, ...customCategories].map(cat => {
                 const input = document.querySelector(`input[oninput*="${cat.id}"]`);
                 const value = input ? parseInt(input.value) : cat.default;
+                const percent = totalIncome > 0 ? ((value / totalIncome) * 100) : 0;
                 return {
                     id: cat.id,
-                    amount: value
+                    percent: percent
                 };
             }),
             lastUpdated: new Date().toISOString()
         };
 
-        // Store in sessionStorage as the primary storage method
-        sessionStorage.setItem('budgetData', JSON.stringify(budgetData));
+        // Store locally as cache
+        localStorage.setItem(`budgetData_${sessionData.username}`, JSON.stringify(budgetData));
         
-        // Update sync status to show saved
-        setTimeout(() => {
-            updateSyncStatus('saved');
-        }, 500);
+        console.log("Saving budget data to server:", budgetData);
         
-        // API endpoint is commented out since it's not working
-        // Instead rely on sessionStorage for persistence
-        /*
-        // Send to MongoDB via API
+        // Send to server for cross-device sync
         fetch('/api/budget/save', {
             method: 'POST',
             headers: {
@@ -867,44 +799,36 @@
             body: JSON.stringify(budgetData)
         })
         .then(response => {
-            if (!response.ok) throw new Error('Network response was not ok');
+            if (!response.ok) {
+                throw new Error(`Server responded with status: ${response.status}`);
+            }
             return response.json();
         })
         .then(data => {
+            console.log("Budget saved successfully to server:", data);
             updateSyncStatus('saved');
         })
         .catch(error => {
-            console.error('Error saving budget data:', error);
+            console.error('Error saving budget data to server:', error);
             updateSyncStatus('offline');
-            // We still have data in sessionStorage as backup
+            // Data is still saved locally as fallback
         });
-        */
     }
 
     function loadBudget() {
+        updateSyncStatus('loading');
+        
         const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
         if (!sessionData.token) {
             window.location.href = 'login.html';
             return;
         }
 
-        // Load budget data directly from sessionStorage
-        const savedBudget = sessionStorage.getItem('budgetData');
-        if (savedBudget) {
-            try {
-                const budgetData = JSON.parse(savedBudget);
-                updateUIWithBudgetData(budgetData);
-                updateSyncStatus('loaded');
-                console.log("Budget data loaded from sessionStorage:", budgetData);
-            } catch (error) {
-                console.error("Error parsing saved budget data:", error);
-            }
-        }
+        console.log("Loading budget data from server...");
 
-        // API endpoint call is not working, so we'll rely solely on sessionStorage
-        /*
-        // Then fetch the latest data from the server
+        // First load from server for cross-device sync
         fetch('/api/budget/load', {
+            method: 'GET',
             headers: {
                 'Authorization': `Bearer ${sessionData.token}`
             }
@@ -912,115 +836,196 @@
         .then(response => {
             if (!response.ok) {
                 if (response.status === 404) {
-                    // No budget found on server, but we may have local data
+                    // No budget found on server, try local storage
+                    console.log("No budget found on server, checking local storage...");
                     return null;
                 }
-                throw new Error('Network response was not ok');
+                throw new Error(`Server responded with status: ${response.status}`);
             }
             return response.json();
         })
         .then(data => {
             if (data) {
-                // Convert server data format to client format if needed
+                console.log("Budget loaded from server:", data);
+                // Convert server data format to client format
                 const clientData = {
                     income: data.income,
-                    customCategories: data.customCategories,
+                    customCategories: data.customCategories || [],
                     allocations: data.allocations.map(alloc => ({
                         id: alloc.id,
-                        amount: alloc.amount || Math.round((alloc.percent / 100) * data.income)
+                        amount: Math.round((alloc.percent / 100) * data.income)
                     }))
                 };
                 
-                // Update sessionStorage with server data
-                sessionStorage.setItem('budgetData', JSON.stringify(clientData));
+                // Update local storage with server data
+                localStorage.setItem(`budgetData_${sessionData.username}`, JSON.stringify(clientData));
                 
                 // Update UI with server data
                 updateUIWithBudgetData(clientData);
+                updateSyncStatus('loaded');
+            } else {
+                // No server data, try local storage
+                loadFromLocalStorage(sessionData.username);
             }
         })
         .catch(error => {
             console.error('Error loading budget data from server:', error);
-            // If server fetch fails, we'll continue using the sessionStorage data
+            // Fallback to local storage
+            loadFromLocalStorage(sessionData.username);
+            updateSyncStatus('offline');
         });
-        */
+    }
+
+    function loadFromLocalStorage(username) {
+        console.log("Loading budget data from local storage...");
+        const storageKey = `budgetData_${username}`;
+        const savedBudget = localStorage.getItem(storageKey);
+        
+        if (savedBudget) {
+            try {
+                const budgetData = JSON.parse(savedBudget);
+                console.log("Budget loaded from local storage:", budgetData);
+                updateUIWithBudgetData(budgetData);
+                updateSyncStatus('loaded');
+                
+                // Try to sync this local data to server in background
+                const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+                if (sessionData.token) {
+                    syncLocalDataToServer(budgetData, sessionData.token);
+                }
+            } catch (error) {
+                console.error("Error parsing local budget data:", error);
+                updateSyncStatus('error');
+            }
+        } else {
+            console.log("No budget data found locally");
+            updateSyncStatus('loaded');
+        }
+    }
+
+    function syncLocalDataToServer(budgetData, token) {
+        console.log("Syncing local data to server in background...");
+        
+        // Convert local data to server format
+        const serverData = {
+            income: budgetData.income,
+            customCategories: budgetData.customCategories || [],
+            allocations: budgetData.allocations ? budgetData.allocations.map(alloc => ({
+                id: alloc.id,
+                percent: budgetData.income > 0 ? ((alloc.amount / budgetData.income) * 100) : 0
+            })) : [],
+            lastUpdated: new Date().toISOString()
+        };
+        
+        fetch('/api/budget/save', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(serverData)
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log("Local data synced to server successfully");
+            }
+        })
+        .catch(error => {
+            console.log("Background sync failed, will retry next time");
+        });
     }
 
     function updateSyncStatus(status) {
         const element = document.getElementById('syncMessage');
+        if (!element) return;
+        
         element.style.transition = 'all 0.2s ease-out';
         
         switch(status) {
             case 'saving':
-                element.textContent = 'Saving your budget...';
+                element.textContent = 'Saving to server...';
                 element.className = 'text-blue-500';
                 break;
             case 'saved':
-                element.textContent = 'Budget saved successfully';
+                element.textContent = 'Synced across devices ✓';
                 element.className = 'text-green-500';
                 break;
             case 'offline':
-                element.textContent = 'Saved locally (offline mode)';
+                element.textContent = 'Saved locally (will sync when online)';
                 element.className = 'text-yellow-500';
                 break;
             case 'loading':
-                element.textContent = 'Loading your budget...';
+                element.textContent = 'Loading from server...';
                 element.className = 'text-blue-500';
                 break;
             case 'loaded':
-                element.textContent = 'Budget loaded successfully';
+                element.textContent = 'Data loaded ✓';
                 element.className = 'text-green-500';
                 break;
             case 'error':
-                element.textContent = 'Error saving budget';
+                element.textContent = 'Error syncing data';
                 element.className = 'text-red-500';
                 break;
         }
     }
 
-    // ...existing code...
-
+    // Budget Visualization and UI Updates
     function updateUIWithBudgetData(data) {
         if (!data) return;
 
         console.log("Updating UI with budget data:", data);
 
         // Set income
-        document.getElementById('monthlyIncome').value = data.income || '';
-        totalIncome = parseFloat(data.income) || 0;
+        const incomeInput = document.getElementById('monthlyIncome');
+        if (incomeInput) {
+            incomeInput.value = data.income || '';
+            totalIncome = parseFloat(data.income) || 0;
+        }
         
         // Set custom categories
         if (data.customCategories && Array.isArray(data.customCategories)) {
-            customCategories = data.customCategories;
+            customCategories = [...data.customCategories];
         }
         
-        // Re-render sliders
+        // Re-render sliders to include custom categories
         renderSliders();
         
-        // Set allocations
-        if (data.allocations && Array.isArray(data.allocations)) {
-            data.allocations.forEach(allocation => {
-                const slider = document.querySelector(`input[oninput*="${allocation.id}"]`);
-                if (slider) {
-                    // If old data had percentages, convert to amounts
-                    if (allocation.percent && !allocation.amount) {
-                        allocation.amount = Math.round((allocation.percent / 100) * totalIncome);
+        // Wait a bit for DOM to update, then set allocations
+        setTimeout(() => {
+            if (data.allocations && Array.isArray(data.allocations)) {
+                data.allocations.forEach(allocation => {
+                    const slider = document.querySelector(`input[oninput*="${allocation.id}"]`);
+                    if (slider) {
+                        let amount = allocation.amount;
+                        
+                        // Handle both amount and percent formats
+                        if (allocation.percent && !allocation.amount && totalIncome > 0) {
+                            amount = Math.round((allocation.percent / 100) * totalIncome);
+                        }
+                        
+                        slider.value = amount || 0;
+                        
+                        // Update the display elements
+                        const amountElement = document.getElementById(`${allocation.id}Amount`);
+                        const percentElement = document.getElementById(`${allocation.id}Percent`);
+                        
+                        if (amountElement) {
+                            amountElement.textContent = `₹${parseInt(amount || 0).toLocaleString('en-IN')}`;
+                        }
+                        
+                        if (percentElement && totalIncome > 0) {
+                            const percent = ((amount / totalIncome) * 100).toFixed(1);
+                            percentElement.textContent = `(${percent}%)`;
+                        }
                     }
-                    
-                    slider.value = allocation.amount;
-                    const amountElement = document.getElementById(`${allocation.id}Amount`);
-                    if (amountElement) {
-                        amountElement.textContent = `₹${parseInt(allocation.amount).toLocaleString('en-IN')}`;
-                    }
-
-                    // Need to manually trigger an input event to update the UI
-                    const event = new Event('input', { bubbles: true });
-                    slider.dispatchEvent(event);
-                }
-            });
-        }
-        
-        // Update budget visualization
-        updateBudget();
+                });
+            }
+            
+            // Update budget visualization after setting all values
+            updateBudget();
+            updateTotalsDisplay();
+            
+        }, 100);
         
         // Show the budget summary if we have income
         if (totalIncome > 0) {
@@ -1029,7 +1034,27 @@
         }
     }
 
-    // ...existing code...
+    // Add periodic sync check for when user comes back online
+    function startPeriodicSync() {
+        setInterval(() => {
+            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+            if (sessionData.token && navigator.onLine) {
+                // Check if we have newer local data to sync
+                const localData = localStorage.getItem(`budgetData_${sessionData.username}`);
+                if (localData) {
+                    try {
+                        const budgetData = JSON.parse(localData);
+                        // Only sync if data exists
+                        if (budgetData.income) {
+                            syncLocalDataToServer(budgetData, sessionData.token);
+                        }
+                    } catch (error) {
+                        console.log("Error in periodic sync:", error);
+                    }
+                }
+            }
+        }, 30000); // Check every 30 seconds
+    }
 
     // Initialize with clean loading
     document.addEventListener('DOMContentLoaded', () => {
@@ -1062,26 +1087,41 @@
         // Display username
         displayUsername();
 
-        // Update sync status to loading
-        updateSyncStatus('loading');
-
-        // Initialize UI
+        // Initialize UI first
         renderSliders();
         
-        // Load budget data from sessionStorage
+        // Then load budget data from server
         loadBudget();
+        
+        // Start periodic sync
+        startPeriodicSync();
         
         // Add event listeners
         document.getElementById('categoryForm').addEventListener('submit', addCategory);
         
         // Listen for manual income changes
+        document.getElementById('monthlyIncome').addEventListener('input', function() {
+            totalIncome = parseFloat(this.value) || 0;
+            renderSliders();
+            updateBudget();
+        });
+        
         document.getElementById('monthlyIncome').addEventListener('change', function() {
+            totalIncome = parseFloat(this.value) || 0;
             renderSliders();
             updateBudget();
             saveBudget(); // Save when income changes
         });
         
-        // ...existing code...
+        // Listen for online/offline events
+        window.addEventListener('online', () => {
+            console.log("Device came online, attempting to sync...");
+            loadBudget(); // Reload from server when coming online
+        });
+        
+        window.addEventListener('offline', () => {
+            console.log("Device went offline, data will be saved locally");
+        });
     });
     </script>
 </body>

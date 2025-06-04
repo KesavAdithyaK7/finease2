@@ -281,31 +281,65 @@ app.post('/api/user/survey-completed', auth, async (req, res) => {
 // Budget Routes
 app.post('/api/budget/save', auth, async (req, res) => {
     try {
+        console.log('Saving budget for user:', req.user._id);
+        console.log('Budget data received:', req.body);
+        
         let budget = await Budget.findOne({ userId: req.user._id });
+        
         if (!budget) {
-            budget = new Budget({ userId: req.user._id, ...req.body });
+            budget = new Budget({
+                userId: req.user._id,
+                income: req.body.income,
+                customCategories: req.body.customCategories || [],
+                allocations: req.body.allocations || [],
+                lastUpdated: new Date()
+            });
         } else {
             budget.income = req.body.income;
-            budget.customCategories = req.body.customCategories;
-            budget.allocations = req.body.allocations;
+            budget.customCategories = req.body.customCategories || [];
+            budget.allocations = req.body.allocations || [];
             budget.lastUpdated = new Date();
         }
+        
         await budget.save();
-        res.json(budget);
+        console.log('Budget saved successfully:', budget);
+        
+        res.json({
+            success: true,
+            message: 'Budget saved successfully',
+            budget: budget
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error saving budget:', error);
+        res.status(500).json({ 
+            success: false,
+            error: error.message 
+        });
     }
 });
 
 app.get('/api/budget/load', auth, async (req, res) => {
     try {
+        console.log('Loading budget for user:', req.user._id);
+        
         const budget = await Budget.findOne({ userId: req.user._id });
+        
         if (!budget) {
-            return res.status(404).json({ error: 'No budget found' });
+            console.log('No budget found for user');
+            return res.status(404).json({ 
+                success: false,
+                error: 'No budget found' 
+            });
         }
+        
+        console.log('Budget loaded successfully:', budget);
         res.json(budget);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error loading budget:', error);
+        res.status(500).json({ 
+            success: false,
+            error: error.message 
+        });
     }
 });
 
