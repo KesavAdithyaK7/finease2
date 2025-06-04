@@ -127,8 +127,6 @@ const auth = async (req, res, next) => {
 
 app.post('/api/budget/save', auth, async (req, res) => {
     try {
-        console.log('Saving budget for user:', req.user._id);
-        
         let budget = await Budget.findOne({ userId: req.user._id });
         
         if (!budget) {
@@ -147,8 +145,6 @@ app.post('/api/budget/save', auth, async (req, res) => {
         }
         
         await budget.save();
-        console.log('Budget saved successfully');
-        
         res.json({
             success: true,
             message: 'Budget saved successfully',
@@ -191,9 +187,6 @@ app.get('/api/budget/load', auth, async (req, res) => {
 
 app.post('/api/expense/start', auth, async (req, res) => {
     try {
-        console.log('Starting expense tracking for user:', req.user._id);
-        
-        // End any existing active expense session
         await Expense.updateMany(
             { userId: req.user._id, isActive: true },
             { isActive: false }
@@ -207,8 +200,6 @@ app.post('/api/expense/start', auth, async (req, res) => {
         });
         
         await expense.save();
-        console.log('Expense tracking started');
-        
         res.json(expense);
     } catch (error) {
         console.error('Error starting expense tracking:', error);
@@ -229,7 +220,6 @@ app.get('/api/expense/current', auth, async (req, res) => {
         
         res.json(expense);
     } catch (error) {
-        console.error('Error getting current expense:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -247,15 +237,12 @@ app.post('/api/expense/add', auth, async (req, res) => {
         
         const { item, amount, category } = req.body;
         
-        // Check if sufficient balance for expenses (not income)
         if (category !== 'Income' && amount > expense.remainingAmount) {
             return res.status(400).json({ error: 'Insufficient balance' });
         }
         
-        // Add the expense/income to expense session
         expense.expenses.push({ item, amount, category, date: new Date() });
         
-        // Update remaining amount
         if (category === 'Income') {
             expense.remainingAmount += amount;
             expense.initialAmount += amount;
@@ -265,7 +252,7 @@ app.post('/api/expense/add', auth, async (req, res) => {
         
         await expense.save();
         
-        // ALSO save to transactions collection for cross-platform access
+        // Save to transactions collection
         const transaction = new Transaction({
             userId: req.user._id,
             item: item,
@@ -277,11 +264,8 @@ app.post('/api/expense/add', auth, async (req, res) => {
         });
         
         await transaction.save();
-        console.log('Expense and transaction saved successfully');
-        
         res.json(expense);
     } catch (error) {
-        console.error('Error adding expense:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -299,17 +283,14 @@ app.delete('/api/expense/finish', auth, async (req, res) => {
         
         expense.isActive = false;
         await expense.save();
-        
-        console.log('Expense tracking finished');
         res.json(expense);
     } catch (error) {
-        console.error('Error finishing expense tracking:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 // ===============================
-// TRANSACTION ROUTES (for dashboard)
+// TRANSACTION ROUTES
 // ===============================
 
 app.get('/api/transactions', auth, async (req, res) => {
@@ -320,10 +301,8 @@ app.get('/api/transactions', auth, async (req, res) => {
             .sort({ date: -1 })
             .limit(limit);
         
-        console.log(`Loaded ${transactions.length} transactions for user`);
         res.json(transactions);
     } catch (error) {
-        console.error('Error loading transactions:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -336,17 +315,14 @@ app.post('/api/register', async (req, res) => {
     try {
         const { email, password, name } = req.body;
         
-        // Check if user already exists
         let user = await User.findOne({ email });
         if (user) {
             return res.status(400).json({ error: 'User already exists' });
         }
         
-        // Hash password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         
-        // Create user
         user = new User({
             email,
             password: hashedPassword,
@@ -355,7 +331,6 @@ app.post('/api/register', async (req, res) => {
         
         await user.save();
         
-        // Create token
         const token = jwt.sign(
             { userId: user._id },
             process.env.JWT_SECRET,
@@ -372,7 +347,6 @@ app.post('/api/register', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Registration error:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
@@ -381,19 +355,16 @@ app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        // Check if user exists
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(400).json({ error: 'Invalid credentials' });
         }
         
-        // Check password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ error: 'Invalid credentials' });
         }
         
-        // Create token
         const token = jwt.sign(
             { userId: user._id },
             process.env.JWT_SECRET,
@@ -410,16 +381,11 @@ app.post('/api/login', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Login error:', error);
         res.status(500).json({ error: 'Server error' });
     }
 });
 
-// ===============================
-// DEFAULT ROUTES
-// ===============================
-
-// Default route - serve login.html
+// Default route
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'html', 'login.html'));
 });
