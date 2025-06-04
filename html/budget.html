@@ -775,28 +775,39 @@
             allocations: [...categories, ...customCategories].map(cat => {
                 const input = document.querySelector(`input[oninput*="${cat.id}"]`);
                 const value = input ? parseInt(input.value) : cat.default;
-                const percent = totalIncome > 0 ? ((value / totalIncome) * 100) : 0;
                 return {
                     id: cat.id,
-                    percent: percent
+                    amount: value
                 };
             }),
-            lastUpdated: new Date().toISOString()
+            lastUpdated: new Date().toISOString(),
+            userId: sessionData.username
         };
 
-        // Store locally as cache
-        localStorage.setItem(`budgetData_${sessionData.username}`, JSON.stringify(budgetData));
+        // ALWAYS save to localStorage first for immediate persistence
+        const storageKey = `budgetData_${sessionData.username}`;
+        localStorage.setItem(storageKey, JSON.stringify(budgetData));
+        console.log("Budget data saved to localStorage:", budgetData);
         
-        console.log("Saving budget data to server:", budgetData);
+        // Try to save to server (but don't fail if it doesn't work)
+        const serverData = {
+            income: budgetData.income,
+            customCategories: budgetData.customCategories,
+            allocations: budgetData.allocations.map(alloc => ({
+                id: alloc.id,
+                percent: totalIncome > 0 ? ((alloc.amount / totalIncome) * 100) : 0
+            })),
+            lastUpdated: budgetData.lastUpdated
+        };
         
-        // Send to server for cross-device sync
+        // Attempt server sync in background
         fetch('/api/budget/save', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${sessionData.token}`
             },
-            body: JSON.stringify(budgetData)
+            body: JSON.stringify(serverData)
         })
         .then(response => {
             if (!response.ok) {
@@ -805,13 +816,12 @@
             return response.json();
         })
         .then(data => {
-            console.log("Budget saved successfully to server:", data);
+            console.log("Budget also synced to server:", data);
             updateSyncStatus('saved');
         })
         .catch(error => {
-            console.error('Error saving budget data to server:', error);
+            console.log('Server sync failed, but data is saved locally:', error.message);
             updateSyncStatus('offline');
-            // Data is still saved locally as fallback
         });
     }
 
@@ -824,9 +834,24 @@
             return;
         }
 
-        console.log("Loading budget data from server...");
+        console.log("Loading budget data...");
+        
+        // ALWAYS load from localStorage first for immediate display
+        const storageKey = `budgetData_${sessionData.username}`;
+        const localData = localStorage.getItem(storageKey);
+        
+        if (localData) {
+            try {
+                const budgetData = JSON.parse(localData);
+                console.log("Budget loaded from localStorage:", budgetData);
+                updateUIWithBudgetData(budgetData);
+                updateSyncStatus('loaded');
+            } catch (error) {
+                console.error("Error parsing local budget data:", error);
+            }
+        }
 
-        // First load from server for cross-device sync
+        // Try to get newer data from server in background
         fetch('/api/budget/load', {
             method: 'GET',
             headers: {
@@ -836,8 +861,7 @@
         .then(response => {
             if (!response.ok) {
                 if (response.status === 404) {
-                    // No budget found on server, try local storage
-                    console.log("No budget found on server, checking local storage...");
+                    console.log("No budget found on server");
                     return null;
                 }
                 throw new Error(`Server responded with status: ${response.status}`);
@@ -845,93 +869,57 @@
             return response.json();
         })
         .then(data => {
-            if (data) {
-                console.log("Budget loaded from server:", data);
-                // Convert server data format to client format
-                const clientData = {
-                    income: data.income,
-                    customCategories: data.customCategories || [],
-                    allocations: data.allocations.map(alloc => ({
-                        id: alloc.id,
-                        amount: Math.round((alloc.percent / 100) * data.income)
-                    }))
-                };
+            if (data && data.lastUpdated) {
+                console.log("Budget data from server:", data);
                 
-                // Update local storage with server data
-                localStorage.setItem(`budgetData_${sessionData.username}`, JSON.stringify(clientData));
+                // Check if server data is newer than local data
+                const localData = localStorage.getItem(storageKey);
+                let shouldUpdateFromServer = true;
                 
-                // Update UI with server data
-                updateUIWithBudgetData(clientData);
-                updateSyncStatus('loaded');
-            } else {
-                // No server data, try local storage
-                loadFromLocalStorage(sessionData.username);
-            }
-        })
-        .catch(error => {
-            console.error('Error loading budget data from server:', error);
-            // Fallback to local storage
-            loadFromLocalStorage(sessionData.username);
-            updateSyncStatus('offline');
-        });
-    }
-
-    function loadFromLocalStorage(username) {
-        console.log("Loading budget data from local storage...");
-        const storageKey = `budgetData_${username}`;
-        const savedBudget = localStorage.getItem(storageKey);
-        
-        if (savedBudget) {
-            try {
-                const budgetData = JSON.parse(savedBudget);
-                console.log("Budget loaded from local storage:", budgetData);
-                updateUIWithBudgetData(budgetData);
-                updateSyncStatus('loaded');
-                
-                // Try to sync this local data to server in background
-                const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
-                if (sessionData.token) {
-                    syncLocalDataToServer(budgetData, sessionData.token);
+                if (localData) {
+                    try {
+                        const localBudget = JSON.parse(localData);
+                        if (localBudget.lastUpdated && new Date(localBudget.lastUpdated) >= new Date(data.lastUpdated)) {
+                            shouldUpdateFromServer = false;
+                            console.log("Local data is newer, keeping local version");
+                        }
+                    } catch (error) {
+                        // If there's an error parsing local data, use server data
+                        shouldUpdateFromServer = true;
+                    }
                 }
-            } catch (error) {
-                console.error("Error parsing local budget data:", error);
-                updateSyncStatus('error');
-            }
-        } else {
-            console.log("No budget data found locally");
-            updateSyncStatus('loaded');
-        }
-    }
-
-    function syncLocalDataToServer(budgetData, token) {
-        console.log("Syncing local data to server in background...");
-        
-        // Convert local data to server format
-        const serverData = {
-            income: budgetData.income,
-            customCategories: budgetData.customCategories || [],
-            allocations: budgetData.allocations ? budgetData.allocations.map(alloc => ({
-                id: alloc.id,
-                percent: budgetData.income > 0 ? ((alloc.amount / budgetData.income) * 100) : 0
-            })) : [],
-            lastUpdated: new Date().toISOString()
-        };
-        
-        fetch('/api/budget/save', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(serverData)
-        })
-        .then(response => {
-            if (response.ok) {
-                console.log("Local data synced to server successfully");
+                
+                if (shouldUpdateFromServer) {
+                    // Convert server data format to client format
+                    const clientData = {
+                        income: data.income,
+                        customCategories: data.customCategories || [],
+                        allocations: data.allocations.map(alloc => ({
+                            id: alloc.id,
+                            amount: Math.round((alloc.percent / 100) * data.income)
+                        })),
+                        lastUpdated: data.lastUpdated,
+                        userId: sessionData.username
+                    };
+                    
+                    // Update localStorage with server data
+                    localStorage.setItem(storageKey, JSON.stringify(clientData));
+                    
+                    // Update UI with server data
+                    updateUIWithBudgetData(clientData);
+                    console.log("UI updated with server data");
+                }
+                
+                updateSyncStatus('saved');
             }
         })
         .catch(error => {
-            console.log("Background sync failed, will retry next time");
+            console.log('Could not sync with server:', error.message);
+            if (!localData) {
+                updateSyncStatus('error');
+            } else {
+                updateSyncStatus('offline');
+            }
         });
     }
 
@@ -943,19 +931,19 @@
         
         switch(status) {
             case 'saving':
-                element.textContent = 'Saving to server...';
+                element.textContent = 'Saving...';
                 element.className = 'text-blue-500';
                 break;
             case 'saved':
-                element.textContent = 'Synced across devices ✓';
+                element.textContent = 'Saved ✓';
                 element.className = 'text-green-500';
                 break;
             case 'offline':
-                element.textContent = 'Saved locally (will sync when online)';
+                element.textContent = 'Saved locally ✓';
                 element.className = 'text-yellow-500';
                 break;
             case 'loading':
-                element.textContent = 'Loading from server...';
+                element.textContent = 'Loading...';
                 element.className = 'text-blue-500';
                 break;
             case 'loaded':
@@ -963,13 +951,12 @@
                 element.className = 'text-green-500';
                 break;
             case 'error':
-                element.textContent = 'Error syncing data';
+                element.textContent = 'Error loading data';
                 element.className = 'text-red-500';
                 break;
         }
     }
 
-    // Budget Visualization and UI Updates
     function updateUIWithBudgetData(data) {
         if (!data) return;
 
@@ -996,21 +983,16 @@
                 data.allocations.forEach(allocation => {
                     const slider = document.querySelector(`input[oninput*="${allocation.id}"]`);
                     if (slider) {
-                        let amount = allocation.amount;
+                        let amount = allocation.amount || 0;
                         
-                        // Handle both amount and percent formats
-                        if (allocation.percent && !allocation.amount && totalIncome > 0) {
-                            amount = Math.round((allocation.percent / 100) * totalIncome);
-                        }
-                        
-                        slider.value = amount || 0;
+                        slider.value = amount;
                         
                         // Update the display elements
                         const amountElement = document.getElementById(`${allocation.id}Amount`);
                         const percentElement = document.getElementById(`${allocation.id}Percent`);
                         
                         if (amountElement) {
-                            amountElement.textContent = `₹${parseInt(amount || 0).toLocaleString('en-IN')}`;
+                            amountElement.textContent = `₹${parseInt(amount).toLocaleString('en-IN')}`;
                         }
                         
                         if (percentElement && totalIncome > 0) {
@@ -1034,26 +1016,42 @@
         }
     }
 
-    // Add periodic sync check for when user comes back online
-    function startPeriodicSync() {
-        setInterval(() => {
-            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
-            if (sessionData.token && navigator.onLine) {
-                // Check if we have newer local data to sync
-                const localData = localStorage.getItem(`budgetData_${sessionData.username}`);
-                if (localData) {
-                    try {
-                        const budgetData = JSON.parse(localData);
-                        // Only sync if data exists
-                        if (budgetData.income) {
-                            syncLocalDataToServer(budgetData, sessionData.token);
-                        }
-                    } catch (error) {
-                        console.log("Error in periodic sync:", error);
-                    }
-                }
-            }
-        }, 30000); // Check every 30 seconds
+    function updateTotalsDisplay() {
+        // Calculate totals
+        const totalAllocated = [...categories, ...customCategories].reduce((sum, cat) => {
+            const slider = document.querySelector(`input[oninput*="${cat.id}"]`);
+            const value = slider ? parseInt(slider.value) : 0;
+            return sum + value;
+        }, 0);
+        
+        const remaining = totalIncome - totalAllocated;
+        const allocatedPercent = totalIncome > 0 ? ((totalAllocated / totalIncome) * 100).toFixed(1) : 0;
+        const remainingPercent = totalIncome > 0 ? ((remaining / totalIncome) * 100).toFixed(1) : 0;
+
+        // Update total allocation display
+        const totalAllocationEl = document.getElementById('totalAllocation');
+        const remainingEl = document.getElementById('remainingToAllocate');
+        
+        if (totalAllocationEl) {
+            totalAllocationEl.textContent = `₹${totalAllocated.toLocaleString('en-IN')} (${allocatedPercent}%)`;
+            totalAllocationEl.classList.toggle('text-red-600', totalAllocated > totalIncome);
+        }
+        
+        if (remainingEl) {
+            remainingEl.textContent = `₹${remaining.toLocaleString('en-IN')} (${remainingPercent}%)`;
+            remainingEl.classList.toggle('text-red-600', remaining < 0);
+        }
+    }
+
+    // Add a function to clear budget data (useful for testing)
+    function clearBudgetData() {
+        const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+        if (sessionData.username) {
+            const storageKey = `budgetData_${sessionData.username}`;
+            localStorage.removeItem(storageKey);
+            console.log("Budget data cleared for user:", sessionData.username);
+            location.reload(); // Reload to reset UI
+        }
     }
 
     // Initialize with clean loading
@@ -1090,11 +1088,8 @@
         // Initialize UI first
         renderSliders();
         
-        // Then load budget data from server
+        // Then load budget data
         loadBudget();
-        
-        // Start periodic sync
-        startPeriodicSync();
         
         // Add event listeners
         document.getElementById('categoryForm').addEventListener('submit', addCategory);
@@ -1113,16 +1108,36 @@
             saveBudget(); // Save when income changes
         });
         
-        // Listen for online/offline events
-        window.addEventListener('online', () => {
-            console.log("Device came online, attempting to sync...");
-            loadBudget(); // Reload from server when coming online
-        });
-        
-        window.addEventListener('offline', () => {
-            console.log("Device went offline, data will be saved locally");
+        // Add keyboard shortcut for clearing data (Ctrl+Shift+C) - for development
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+                if (confirm('Clear all budget data? This cannot be undone.')) {
+                    clearBudgetData();
+                }
+            }
         });
     });
-    </script>
+
+    function displayUsername() {
+        const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+        const username = sessionData.username || 'User';
+        
+        const usernameElements = document.querySelectorAll('#userName, #userNameSidebar');
+        usernameElements.forEach(element => {
+            if (element) element.textContent = username;
+        });
+    }
+
+    function logout() {
+        if (confirm('Are you sure you want to logout?')) {
+            // Don't clear localStorage budget data on logout - let it persist
+            sessionStorage.removeItem('userSession');
+            window.location.href = 'login.html';
+        }
+    }
+
+    // ...existing code for other functions...
+</script>
+
 </body>
 </html>

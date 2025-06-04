@@ -719,7 +719,7 @@
             return categories;
         }
         
-        // API Calls - Update to use real server endpoints
+        // API Calls - Update to use consistent storage
         async function apiCall(endpoint, method = 'GET', body = null) {
             try {
                 const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
@@ -747,7 +747,9 @@
             } catch (error) {
                 console.error(`API Error (${endpoint}):`, error);
                 
-                // Fallback to localStorage for offline functionality
+                // Fallback to sessionStorage for offline functionality
+                const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+                
                 if (endpoint === '/expense/start' && method === 'POST') {
                     const expenseData = {
                         initialAmount: body.initialAmount,
@@ -756,54 +758,66 @@
                         userId: sessionData.username,
                         createdAt: new Date().toISOString()
                     };
-                    localStorage.setItem(`currentExpenseSession_${sessionData.username}`, JSON.stringify(expenseData));
+                    sessionStorage.setItem('currentExpenseSession', JSON.stringify(expenseData));
                     return expenseData;
                 }
                 
                 if (endpoint === '/expense/current' && method === 'GET') {
-                    const saved = localStorage.getItem(`currentExpenseSession_${sessionData.username}`);
+                    const saved = sessionStorage.getItem('currentExpenseSession');
                     if (saved) return JSON.parse(saved);
                     throw new Error('No current expense session found');
                 }
                 
                 if (endpoint === '/expense/add' && method === 'POST') {
-                    const saved = localStorage.getItem(`currentExpenseSession_${sessionData.username}`);
+                    const saved = sessionStorage.getItem('currentExpenseSession');
                     if (!saved) throw new Error('No current expense session found');
                     
                     const expenseData = JSON.parse(saved);
-                    if (body.amount > expenseData.remainingAmount) {
+                    if (body.category !== 'Income' && body.amount > expenseData.remainingAmount) {
                         throw new Error('Insufficient balance');
                     }
                     
-                    expenseData.expenses.push({
+                    const newExpense = {
                         item: body.item,
                         amount: body.amount,
                         category: body.category,
                         date: new Date().toISOString()
-                    });
-                    expenseData.remainingAmount -= body.amount;
+                    };
                     
-                    localStorage.setItem(`currentExpenseSession_${sessionData.username}`, JSON.stringify(expenseData));
+                    expenseData.expenses.push(newExpense);
                     
-                    // Store in transaction history
-                    const transactions = JSON.parse(localStorage.getItem(`transactions_${sessionData.username}`) || '[]');
+                    if (body.category === 'Income') {
+                        expenseData.remainingAmount += body.amount;
+                        expenseData.initialAmount += body.amount; // Also update initial amount for income
+                    } else {
+                        expenseData.remainingAmount -= body.amount;
+                    }
+                    
+                    sessionStorage.setItem('currentExpenseSession', JSON.stringify(expenseData));
+                    
+                    // Store in transaction history for dashboard - USE SESSIONSTORAGE
+                    const transactions = JSON.parse(sessionStorage.getItem('transactions') || '[]');
                     transactions.unshift({
                         item: body.item,
                         amount: body.amount,
                         category: body.category,
-                        date: new Date().toISOString()
+                        date: new Date().toISOString(),
+                        description: body.item // Add description field for dashboard compatibility
                     });
-                    localStorage.setItem(`transactions_${sessionData.username}`, JSON.stringify(transactions));
+                    sessionStorage.setItem('transactions', JSON.stringify(transactions));
+                    
+                    console.log('Transaction added to sessionStorage:', newExpense);
+                    console.log('All transactions:', transactions);
                     
                     return expenseData;
                 }
                 
                 if (endpoint === '/expense/finish' && method === 'DELETE') {
-                    const saved = localStorage.getItem(`currentExpenseSession_${sessionData.username}`);
+                    const saved = sessionStorage.getItem('currentExpenseSession');
                     if (!saved) throw new Error('No current expense session found');
                     
                     const expenseData = JSON.parse(saved);
-                    localStorage.removeItem(`currentExpenseSession_${sessionData.username}`);
+                    sessionStorage.removeItem('currentExpenseSession');
                     return expenseData;
                 }
                 
@@ -847,7 +861,12 @@
                 const category = document.getElementById('expenseCategory').value;
                 
                 if (amount <= 0) {
-                    alert('Please enter a valid amount greater than zero');
+                    alert('Please enter a valid amount');
+                    return;
+                }
+                
+                if (!item.trim()) {
+                    alert('Please enter an item description');
                     return;
                 }
                 
@@ -859,8 +878,7 @@
                 const currentData = await apiCall('/expense/current', 'GET');
                 
                 if (!currentData) {
-                    alert('No active tracking session found');
-                    toggleSections(['startTracking'], ['addExpense', 'chartSection', 'expenseListContainer']);
+                    alert('No expense session found. Please start tracking first.');
                     return;
                 }
                 
@@ -870,37 +888,30 @@
                 if (category !== 'Income' && amount > remainingBalance) {
                     const deficit = amount - remainingBalance;
                     
-                    // Remove existing warning
+                    // Remove any existing warning
                     const existingWarning = document.getElementById('deficitWarning');
                     if (existingWarning) existingWarning.remove();
                     
-                    // Create warning
+                    // Add warning message
                     const warningDiv = document.createElement('div');
                     warningDiv.id = 'deficitWarning';
+                    warningDiv.className = 'mt-2 p-3 bg-red-50 border border-red-200 rounded-lg';
                     warningDiv.innerHTML = `
-                        <div class="bg-red-50 border-l-4 border-red-500 p-3 mb-3">
-                            <div class="flex">
-                                <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div class="ml-3">
-                                    <p class="text-red-700 font-medium text-sm">This expense exceeds your balance by ${displayAmount(deficit)}</p>
-                                </div>
-                            </div>
-                        </div>`;
-
-                    // Add warning before the form
-                    document.getElementById('addExpenseForm').insertAdjacentElement('beforebegin', warningDiv);
-
-                    if (!confirm('Do you want to proceed with this expense?')) {
-                        return;
-                    }
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z"/>
+                            </svg>
+                            <span class="text-red-700 text-sm">
+                                Warning: This expense (₹${amount.toLocaleString('en-IN')}) exceeds your remaining balance (₹${remainingBalance.toLocaleString('en-IN')}) by ₹${deficit.toLocaleString('en-IN')}.
+                            </span>
+                        </div>
+                    `;
+                    
+                    document.getElementById('addExpenseForm').appendChild(warningDiv);
                 }
 
                 const data = await apiCall('/expense/add', 'POST', { 
-                    item, 
+                    item,
                     amount,
                     category
                 });
@@ -1023,7 +1034,7 @@
                     toggleSections(['addExpense', 'chartSection'], ['startTracking']);
                     updateBalance(data.remainingAmount);
                     updateChart(data);
-                    updateExpenseList(data.expenses);
+                    updateExpenseList(data.expenses || []);
                 }
             }).catch(console.error);
         });
@@ -1045,8 +1056,9 @@
         
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
+                // Clear all session data on logout
                 sessionStorage.removeItem('userSession');
-                sessionStorage.removeItem('expenseData');
+                sessionStorage.removeItem('currentExpenseSession');
                 sessionStorage.removeItem('transactions');
                 window.location.href = 'login.html';
             }

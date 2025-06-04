@@ -435,10 +435,12 @@
         }
 
         function loadTransactions() {
-            // Get transactions from sessionStorage instead of localStorage
+            // Get transactions from sessionStorage
             const transactions = JSON.parse(sessionStorage.getItem('transactions') || '[]');
             const transactionsList = document.getElementById('transactions-list');
             const transactionsContainer = document.getElementById('transactions-container');
+            
+            console.log('Loading transactions from sessionStorage:', transactions);
             
             if (transactions.length === 0) {
                 // No transactions found
@@ -452,8 +454,8 @@
                     </div>
                 `;
             } else {
-                // Display transactions (limit to latest 3)
-                const recentTransactions = transactions.slice(0, 3);
+                // Display transactions (limit to latest 5)
+                const recentTransactions = transactions.slice(0, 5);
                 
                 let transactionsHTML = '';
                 recentTransactions.forEach((transaction, index) => {
@@ -469,6 +471,10 @@
                         iconClass = 'text-green-600';
                         bgClass = 'bg-green-100';
                         path = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />`;
+                    } else if (transaction.category === 'Transport') {
+                        iconClass = 'text-blue-600';
+                        bgClass = 'bg-blue-100';
+                        path = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />`;
                     }
                     
                     // Format date
@@ -499,10 +505,10 @@
                                 </div>
                                 <div>
                                     <p class="font-medium text-gray-800">${description}</p>
-                                    <p class="text-sm text-gray-500">${dateString}</p>
+                                    <p class="text-sm text-gray-500">${transaction.category} • ${dateString}</p>
                                 </div>
                             </div>
-                            <span class="font-medium ${amountClass}">${amountPrefix}₹${transaction.amount}</span>
+                            <span class="font-medium ${amountClass}">${amountPrefix}₹${Number(transaction.amount).toLocaleString('en-IN')}</span>
                         </div>
                     `;
                 });
@@ -513,7 +519,10 @@
 
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
+                // Clear all session data
                 sessionStorage.removeItem('userSession');
+                sessionStorage.removeItem('transactions');
+                sessionStorage.removeItem('currentExpenseSession');
                 window.location.href = 'login.html';
             }
         }
