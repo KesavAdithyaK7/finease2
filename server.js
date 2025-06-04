@@ -52,80 +52,24 @@ const userSchema = new mongoose.Schema({
 });
 
 // Expense schema
-const expenseTrackingSchema = new mongoose.Schema({
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        ref: 'User'
-    },
-    initialAmount: {
-        type: Number,
-        required: true
-    },
-    remainingAmount: {
-        type: Number,
-        required: true
-    },
+const expenseSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    initialAmount: { type: Number, required: true },
+    remainingAmount: { type: Number, required: true },
     expenses: [{
-        item: {
-            type: String,
-            required: true
-        },
-        amount: {
-            type: Number,
-            required: true
-        },
-        date: {
-            type: Date,
-            default: Date.now
-        }
-    }]
+        item: String,
+        amount: Number,
+        category: String,
+        date: { type: Date, default: Date.now }
+    }],
+    createdAt: { type: Date, default: Date.now },
+    isActive: { type: Boolean, default: true }
 });
 
-// Survey Schema
-const surveySchema = new mongoose.Schema({
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        ref: 'User'
-    },
-    ageGroup: {
-        type: String,
-        required: true
-    },
-    incomeRange: {
-        type: String,
-        required: true
-    },
-    savings: {
-        type: Number,
-        required: true
-    },
-    primaryGoal: {
-        type: String,
-        required: true
-    },
-    experience: {
-        type: String,
-        required: true
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
-});
-
-// Budget Schema
+// Budget schema
 const budgetSchema = new mongoose.Schema({
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-        ref: 'User'
-    },
-    income: {
-        type: Number,
-        required: true
-    },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    income: { type: Number, required: true },
     customCategories: [{
         id: String,
         name: String,
@@ -136,35 +80,33 @@ const budgetSchema = new mongoose.Schema({
         id: String,
         percent: Number
     }],
-    lastUpdated: {
-        type: Date,
-        default: Date.now
-    }
+    lastUpdated: { type: Date, default: Date.now }
 });
 
-// Initialize Models
 const User = mongoose.model('User', userSchema);
-const ExpenseTracking = mongoose.model('ExpenseTracking', expenseTrackingSchema);
 const Budget = mongoose.model('Budget', budgetSchema);
-const Survey = mongoose.model('Survey', surveySchema);
+const Expense = mongoose.model('Expense', expenseSchema);
 
-// ===============================
-// AUTHENTICATION MIDDLEWARE
-// ===============================
+// Auth middleware
 const auth = async (req, res, next) => {
     try {
-        const token = req.header('Authorization').replace('Bearer ', '');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
-        const user = await User.findOne({ _id: decoded._id });
+        const token = req.header('Authorization')?.replace('Bearer ', '');
+        if (!token) {
+            return res.status(401).json({ error: 'No token, authorization denied' });
+        }
+        
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.userId);
         
         if (!user) {
-            throw new Error();
+            return res.status(401).json({ error: 'Token is not valid' });
         }
-
+        
         req.user = user;
         next();
-    } catch (e) {
-        res.status(401).send({ error: 'Please authenticate' });
+    } catch (error) {
+        console.error('Auth middleware error:', error);
+        res.status(401).json({ error: 'Token is not valid' });
     }
 };
 
@@ -346,63 +288,107 @@ app.get('/api/budget/load', auth, async (req, res) => {
 // Expense Routes
 app.post('/api/expense/start', auth, async (req, res) => {
     try {
-        const expenseTracking = new ExpenseTracking({
+        console.log('Starting expense tracking for user:', req.user._id);
+        
+        // End any existing active expense session
+        await Expense.updateMany(
+            { userId: req.user._id, isActive: true },
+            { isActive: false }
+        );
+        
+        const expense = new Expense({
             userId: req.user._id,
             initialAmount: req.body.initialAmount,
             remainingAmount: req.body.initialAmount,
             expenses: []
         });
-        await expenseTracking.save();
-        res.status(201).send(expenseTracking);
-    } catch (e) {
-        res.status(400).send({ error: e.message });
-    }
-});
-
-app.post('/api/expense/add', auth, async (req, res) => {
-    try {
-        const { item, amount } = req.body;
         
-        const expenseTracking = await ExpenseTracking.findOne({ userId: req.user._id });
-        if (!expenseTracking) {
-            return res.status(404).send({ error: 'No active expense tracking found' });
-        }
-
-        if (amount > expenseTracking.remainingAmount) {
-            return res.status(400).send({ error: 'Insufficient balance' });
-        }
-
-        expenseTracking.expenses.push({ item, amount });
-        expenseTracking.remainingAmount -= amount;
-        await expenseTracking.save();
+        await expense.save();
+        console.log('Expense tracking started:', expense);
         
-        res.send(expenseTracking);
-    } catch (e) {
-        res.status(400).send({ error: e.message });
+        res.json(expense);
+    } catch (error) {
+        console.error('Error starting expense tracking:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 
 app.get('/api/expense/current', auth, async (req, res) => {
     try {
-        const expenseTracking = await ExpenseTracking.findOne({ userId: req.user._id });
-        if (!expenseTracking) {
-            return res.status(404).send({ error: 'No expense tracking found' });
+        const expense = await Expense.findOne({ 
+            userId: req.user._id, 
+            isActive: true 
+        });
+        
+        if (!expense) {
+            return res.status(404).json({ error: 'No active expense session found' });
         }
-        res.send(expenseTracking);
-    } catch (e) {
-        res.status(500).send({ error: e.message });
+        
+        res.json(expense);
+    } catch (error) {
+        console.error('Error getting current expense:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/expense/add', auth, async (req, res) => {
+    try {
+        const expense = await Expense.findOne({ 
+            userId: req.user._id, 
+            isActive: true 
+        });
+        
+        if (!expense) {
+            return res.status(404).json({ error: 'No active expense session found' });
+        }
+        
+        const { item, amount, category } = req.body;
+        
+        // Check if sufficient balance for expenses (not income)
+        if (category !== 'Income' && amount > expense.remainingAmount) {
+            return res.status(400).json({ error: 'Insufficient balance' });
+        }
+        
+        // Add the expense/income
+        expense.expenses.push({ item, amount, category, date: new Date() });
+        
+        // Update remaining amount
+        if (category === 'Income') {
+            expense.remainingAmount += amount;
+            expense.initialAmount += amount;
+        } else {
+            expense.remainingAmount -= amount;
+        }
+        
+        await expense.save();
+        console.log('Expense added:', { item, amount, category });
+        
+        res.json(expense);
+    } catch (error) {
+        console.error('Error adding expense:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 
 app.delete('/api/expense/finish', auth, async (req, res) => {
     try {
-        const expenseTracking = await ExpenseTracking.findOneAndDelete({ userId: req.user._id });
-        if (!expenseTracking) {
-            return res.status(404).send({ error: 'No expense tracking found' });
+        const expense = await Expense.findOne({ 
+            userId: req.user._id, 
+            isActive: true 
+        });
+        
+        if (!expense) {
+            return res.status(404).json({ error: 'No active expense session found' });
         }
-        res.send(expenseTracking);
-    } catch (e) {
-        res.status(500).send({ error: e.message });
+        
+        expense.isActive = false;
+        await expense.save();
+        
+        console.log('Expense tracking finished:', expense);
+        res.json(expense);
+    } catch (error) {
+        console.error('Error finishing expense tracking:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 

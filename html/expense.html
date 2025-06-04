@@ -449,7 +449,7 @@
     
     <script>
         let chart = null;
-        const API_URL = 'https://finease-2kj3.onrender.com/api';
+        const API_URL = '/api'; // Use relative URL for deployed app
         const categoryColors = {
             'Food': '#f97316',       // Orange
             'Transport': '#0ea5e9',  // Sky Blue
@@ -719,7 +719,7 @@
             return categories;
         }
         
-        // API Calls - Update to use consistent storage
+        // API Calls - Fixed to use localStorage for persistence
         async function apiCall(endpoint, method = 'GET', body = null) {
             try {
                 const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
@@ -747,29 +747,30 @@
             } catch (error) {
                 console.error(`API Error (${endpoint}):`, error);
                 
-                // Fallback to sessionStorage for offline functionality
+                // Fallback to localStorage for offline functionality
                 const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+                const username = sessionData.username;
                 
                 if (endpoint === '/expense/start' && method === 'POST') {
                     const expenseData = {
                         initialAmount: body.initialAmount,
                         remainingAmount: body.initialAmount,
                         expenses: [],
-                        userId: sessionData.username,
+                        userId: username,
                         createdAt: new Date().toISOString()
                     };
-                    sessionStorage.setItem('currentExpenseSession', JSON.stringify(expenseData));
+                    localStorage.setItem(`currentExpenseSession_${username}`, JSON.stringify(expenseData));
                     return expenseData;
                 }
                 
                 if (endpoint === '/expense/current' && method === 'GET') {
-                    const saved = sessionStorage.getItem('currentExpenseSession');
+                    const saved = localStorage.getItem(`currentExpenseSession_${username}`);
                     if (saved) return JSON.parse(saved);
                     throw new Error('No current expense session found');
                 }
                 
                 if (endpoint === '/expense/add' && method === 'POST') {
-                    const saved = sessionStorage.getItem('currentExpenseSession');
+                    const saved = localStorage.getItem(`currentExpenseSession_${username}`);
                     if (!saved) throw new Error('No current expense session found');
                     
                     const expenseData = JSON.parse(saved);
@@ -788,36 +789,36 @@
                     
                     if (body.category === 'Income') {
                         expenseData.remainingAmount += body.amount;
-                        expenseData.initialAmount += body.amount; // Also update initial amount for income
+                        expenseData.initialAmount += body.amount;
                     } else {
                         expenseData.remainingAmount -= body.amount;
                     }
                     
-                    sessionStorage.setItem('currentExpenseSession', JSON.stringify(expenseData));
+                    localStorage.setItem(`currentExpenseSession_${username}`, JSON.stringify(expenseData));
                     
-                    // Store in transaction history for dashboard - USE SESSIONSTORAGE
-                    const transactions = JSON.parse(sessionStorage.getItem('transactions') || '[]');
+                    // Store in transaction history for dashboard - USE LOCALSTORAGE
+                    const transactions = JSON.parse(localStorage.getItem(`transactions_${username}`) || '[]');
                     transactions.unshift({
                         item: body.item,
                         amount: body.amount,
                         category: body.category,
                         date: new Date().toISOString(),
-                        description: body.item // Add description field for dashboard compatibility
+                        description: body.item
                     });
-                    sessionStorage.setItem('transactions', JSON.stringify(transactions));
+                    localStorage.setItem(`transactions_${username}`, JSON.stringify(transactions));
                     
-                    console.log('Transaction added to sessionStorage:', newExpense);
+                    console.log('Transaction added to localStorage:', newExpense);
                     console.log('All transactions:', transactions);
                     
                     return expenseData;
                 }
                 
                 if (endpoint === '/expense/finish' && method === 'DELETE') {
-                    const saved = sessionStorage.getItem('currentExpenseSession');
+                    const saved = localStorage.getItem(`currentExpenseSession_${username}`);
                     if (!saved) throw new Error('No current expense session found');
                     
                     const expenseData = JSON.parse(saved);
-                    sessionStorage.removeItem('currentExpenseSession');
+                    localStorage.removeItem(`currentExpenseSession_${username}`);
                     return expenseData;
                 }
                 
@@ -1056,10 +1057,8 @@
         
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
-                // Clear all session data on logout
+                // Clear session data but keep expense/transaction data
                 sessionStorage.removeItem('userSession');
-                sessionStorage.removeItem('currentExpenseSession');
-                sessionStorage.removeItem('transactions');
                 window.location.href = 'login.html';
             }
         }

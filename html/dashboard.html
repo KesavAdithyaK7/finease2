@@ -435,15 +435,16 @@
         }
 
         function loadTransactions() {
-            // Get transactions from sessionStorage
-            const transactions = JSON.parse(sessionStorage.getItem('transactions') || '[]');
-            const transactionsList = document.getElementById('transactions-list');
-            const transactionsContainer = document.getElementById('transactions-container');
+            const sessionData = JSON.parse(sessionStorage.getItem('userSession') || '{}');
+            const username = sessionData.username;
             
-            console.log('Loading transactions from sessionStorage:', transactions);
+            // Get transactions from localStorage using username
+            const transactions = JSON.parse(localStorage.getItem(`transactions_${username}`) || '[]');
+            const transactionsList = document.getElementById('transactions-list');
+            
+            console.log('Loading transactions from localStorage:', transactions);
             
             if (transactions.length === 0) {
-                // No transactions found
                 transactionsList.innerHTML = `
                     <div class="text-center py-8">
                         <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -477,7 +478,7 @@
                         path = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />`;
                     }
                     
-                    // Format date
+                    // Format date and amount
                     const transactionDate = new Date(transaction.date);
                     const dateString = transactionDate.toLocaleDateString('en-US', {
                         month: 'short', 
@@ -487,12 +488,9 @@
                         hour12: true
                     });
                     
-                    // Format amount (positive or negative)
                     const isExpense = transaction.category !== 'Income';
                     const amountClass = isExpense ? 'text-red-600' : 'text-green-600';
                     const amountPrefix = isExpense ? '-' : '+';
-                    
-                    // Support both 'description' and 'item' field names
                     const description = transaction.description || transaction.item || 'Unknown';
                     
                     transactionsHTML += `
@@ -519,10 +517,8 @@
 
         function logout() {
             if (confirm('Are you sure you want to logout?')) {
-                // Clear all session data
+                // Only clear session data, keep user data in localStorage
                 sessionStorage.removeItem('userSession');
-                sessionStorage.removeItem('transactions');
-                sessionStorage.removeItem('currentExpenseSession');
                 window.location.href = 'login.html';
             }
         }
